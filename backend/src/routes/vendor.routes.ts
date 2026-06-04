@@ -1,0 +1,306 @@
+import { Router } from "express";
+import QRCode from "qrcode";
+import { Vendor } from "../models/Vendor";
+import { MenuCategory } from "../models/MenuCategory";
+import { MenuItem } from "../models/MenuItem";
+import { Order, ORDER_STATUSES } from "../models/Order";
+import { Coupon } from "../models/Coupon";
+import { authenticate, requireRole } from "../middleware/auth";
+import { asyncH, HttpError } from "../middleware/error";
+import { emitOrderStatus } from "../realtime/io";
+import { env } from "../config/env";
+
+const router = Router();
+
+router.use(authenticate, requireRole("VENDOR"));
+
+const vid = (req: any) => req.user!.id as string;
+
+// ---- Stall profile ----
+router.get(
+  "/me",
+  asyncH(async (req, res) => {
+    const vendor = await Vendor.findById(vid(req)).select("-passwordHash");
+    if (!vendor) throw new HttpError(404, "Not found");
+    res.json(vendor);
+  })
+);
+
+router.put(
+  "/me",
+  asyncH(async (req, res) => {
+    const allowed = [
+      "name",
+      "phone",
+      "description",
+      "address",
+      "logo",
+      "banner",
+      "category",
+      "openingHours",
+      "isOpen",
+      "socialLinks",
+      "prepTime",
+    ];
+    const update: Record<string, unknown> = {};
+    for (const k of allowed) if (k in req.body) update[k] = req.body[k];
+    const vendor = await Vendor.findByIdAndUpdate(vid(req), update, { new: true }).select(
+      "-passwordHash"
+    );
+    res.json(vendor);
+  })
+);
+
+// ---- Dashboard stats ----
+router.get(
+  "/stats",
+  asyncH(async (req, res) => {
+    const vendorId = vid(req);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const [todayOrders, pending, completed, allOrders] = await Promise.all([
+      Order.find({ vendorId, createdAt: { $gte: startOfDay } }),
+      Order.countDocuments({ vendorId, status: { $in: ["received", "accepted", "preparing"] } }),
+      Order.countDocuments({ vendorId, status: "collected" }),
+      Order.find({ vendorId, status: { $ne: "cancelled" } }),
+    ]);
+
+    const todayRevenue = todayOrders
+      .filter((o) => o.status !== "cancelled")
+      .reduce((s, o) => s + o.total, 0);
+
+    // Top selling items across all orders.
+    const counts = new Map<string, { name: string; qty: number; revenue: number }>();
+    for (const o of allOrders) {
+      for (const it of o.items) {
+        const cur = counts.get(it.name) || { name: it.name, qty: 0, revenue: 0 };
+        cur.qty += it.qty;
+        cur.revenue += it.price * it.qty;
+        counts.set(it.name, cur);
+      }
+    }
+    const topItems = [...counts.values()].sort((a, b) => b.qty - a.qty).slice(0, 5);
+
+    res.json({
+      todayOrdersCount: todayOrders.length,
+      todayRevenue,
+      pendingOrders: pending,
+      completedOrders: completed,
+      totalOrders: allOrders.length,
+      totalRevenue: allOrders.reduce((s, o) => s + o.total, 0),
+      topItems,
+    });
+  })
+);
+
+// ---- Orders ----
+router.get(
+  "/orders",
+  asyncH(async (req, res) => {
+    const { status } = req.query;
+    const filter: Record<string, unknown> = { vendorId: vid(req) };
+    if (status && status !== "all") filter.status = status;
+    const orders = await Order.find(filter).sort({ createdAt: -1 }).limit(200);
+    res.json(orders);
+  })
+);
+
+router.patch(
+  "/orders/:id/status",
+  asyncH(async (req, res) => {
+    const { status } = req.body;
+    if (!ORDER_STATUSES.includes(status)) throw new HttpError(400, "Invalid status");
+    const order = await Order.findOneAndUpdate(
+      { _id: req.params.id, vendorId: vid(req) },
+      { status, ...(status === "collected" ? { paymentStatus: "paid" } : {}) },
+      { new: true }
+    );
+    if (!order) throw new HttpError(404, "Order not found");
+    emitOrderStatus(vid(req), order.orderNumber, order);
+    res.json(order);
+  })
+);
+
+// ---- Categories ----
+router.get(
+  "/categories",
+  asyncH(async (req, res) => {
+    res.json(await MenuCategory.find({ vendorId: vid(req) }).sort({ sortOrder: 1 }));
+  })
+);
+
+router.post(
+  "/categories",
+  asyncH(async (req, res) => {
+    const { name, image, sortOrder } = req.body;
+    if (!name) throw new HttpError(400, "Name required");
+    const cat = await MenuCategory.create({ vendorId: vid(req), name, image, sortOrder });
+    res.status(201).json(cat);
+  })
+);
+
+router.put(
+  "/categories/:id",
+  asyncH(async (req, res) => {
+    const cat = await MenuCategory.findOneAndUpdate(
+      { _id: req.params.id, vendorId: vid(req) },
+      req.body,
+      { new: true }
+    );
+    if (!cat) throw new HttpError(404, "Not found");
+    res.json(cat);
+  })
+);
+
+router.delete(
+  "/categories/:id",
+  asyncH(async (req, res) => {
+    await MenuCategory.deleteOne({ _id: req.params.id, vendorId: vid(req) });
+    await MenuItem.deleteMany({ categoryId: req.params.id, vendorId: vid(req) });
+    res.json({ ok: true });
+  })
+);
+
+// ---- Items ----
+router.get(
+  "/items",
+  asyncH(async (req, res) => {
+    res.json(await MenuItem.find({ vendorId: vid(req) }).sort({ createdAt: -1 }));
+  })
+);
+
+router.post(
+  "/items",
+  asyncH(async (req, res) => {
+    const { name, price, categoryId } = req.body;
+    if (!name || price == null || !categoryId) throw new HttpError(400, "Missing fields");
+    const item = await MenuItem.create({ ...req.body, vendorId: vid(req) });
+    res.status(201).json(item);
+  })
+);
+
+router.put(
+  "/items/:id",
+  asyncH(async (req, res) => {
+    const item = await MenuItem.findOneAndUpdate(
+      { _id: req.params.id, vendorId: vid(req) },
+      req.body,
+      { new: true }
+    );
+    if (!item) throw new HttpError(404, "Not found");
+    res.json(item);
+  })
+);
+
+router.patch(
+  "/items/:id/availability",
+  asyncH(async (req, res) => {
+    const item = await MenuItem.findOne({ _id: req.params.id, vendorId: vid(req) });
+    if (!item) throw new HttpError(404, "Not found");
+    item.isAvailable = !item.isAvailable;
+    await item.save();
+    res.json(item);
+  })
+);
+
+router.delete(
+  "/items/:id",
+  asyncH(async (req, res) => {
+    await MenuItem.deleteOne({ _id: req.params.id, vendorId: vid(req) });
+    res.json({ ok: true });
+  })
+);
+
+// ---- Coupons ----
+router.get(
+  "/coupons",
+  asyncH(async (req, res) => {
+    res.json(await Coupon.find({ vendorId: vid(req) }).sort({ createdAt: -1 }));
+  })
+);
+
+router.post(
+  "/coupons",
+  asyncH(async (req, res) => {
+    const { code, type, value } = req.body;
+    if (!code || !type || value == null) throw new HttpError(400, "Missing fields");
+    const coupon = await Coupon.create({ ...req.body, vendorId: vid(req) });
+    res.status(201).json(coupon);
+  })
+);
+
+router.put(
+  "/coupons/:id",
+  asyncH(async (req, res) => {
+    const coupon = await Coupon.findOneAndUpdate(
+      { _id: req.params.id, vendorId: vid(req) },
+      req.body,
+      { new: true }
+    );
+    if (!coupon) throw new HttpError(404, "Not found");
+    res.json(coupon);
+  })
+);
+
+router.delete(
+  "/coupons/:id",
+  asyncH(async (req, res) => {
+    await Coupon.deleteOne({ _id: req.params.id, vendorId: vid(req) });
+    res.json({ ok: true });
+  })
+);
+
+// ---- QR ----
+router.get(
+  "/qr",
+  asyncH(async (req, res) => {
+    const vendor = await Vendor.findById(vid(req));
+    if (!vendor) throw new HttpError(404, "Not found");
+    const url = `${env.CLIENT_URL}/vendor/${vendor.slug}`;
+    const dataUrl = await QRCode.toDataURL(url, { width: 600, margin: 2 });
+    res.json({ url, qr: dataUrl });
+  })
+);
+
+// ---- Reports ----
+router.get(
+  "/reports",
+  asyncH(async (req, res) => {
+    const vendorId = vid(req);
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+    const orders = await Order.find({
+      vendorId,
+      status: { $ne: "cancelled" },
+      createdAt: { $gte: since },
+    });
+
+    // Daily revenue buckets for last 30 days.
+    const daily = new Map<string, { date: string; revenue: number; orders: number }>();
+    for (const o of orders) {
+      const d = new Date(o.createdAt as unknown as string).toISOString().slice(0, 10);
+      const cur = daily.get(d) || { date: d, revenue: 0, orders: 0 };
+      cur.revenue += o.total;
+      cur.orders += 1;
+      daily.set(d, cur);
+    }
+
+    const counts = new Map<string, { name: string; qty: number }>();
+    for (const o of orders)
+      for (const it of o.items) {
+        const cur = counts.get(it.name) || { name: it.name, qty: 0 };
+        cur.qty += it.qty;
+        counts.set(it.name, cur);
+      }
+
+    res.json({
+      daily: [...daily.values()].sort((a, b) => a.date.localeCompare(b.date)),
+      bestSellers: [...counts.values()].sort((a, b) => b.qty - a.qty).slice(0, 10),
+      totalRevenue: orders.reduce((s, o) => s + o.total, 0),
+      totalOrders: orders.length,
+    });
+  })
+);
+
+export default router;
