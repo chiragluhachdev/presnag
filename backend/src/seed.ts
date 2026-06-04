@@ -217,7 +217,7 @@ async function seed() {
       lng: v.lng ?? BASE_LNG + (Math.random() - 0.5) * 0.06,
     });
     createdVendors.push(vendor);
-
+ 
     let sort = 0;
     for (const cat of v.menu) {
       const category = await MenuCategory.create({

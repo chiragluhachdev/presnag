@@ -7,7 +7,7 @@ import { env } from "./config/env";
 async function main() {
   await connectDB();
   const app = createApp();
-  const server = http.createServer(app);
+  const server = http.createServer(app); 
   initIO(server);
   server.listen(env.PORT, () => {
     console.log(`[server] PreSnag API on http://localhost:${env.PORT}`);
