@@ -20,7 +20,12 @@ export const cloudinaryEnabled = Boolean(
 );
 
 // Allowed browser origin (the single frontend app). Extend if you add more.
-export const allowedOrigins = [env.CLIENT_URL];
+export const allowedOrigins = [
+  env.CLIENT_URL,
+  "https://presnag.com",
+  "https://www.presnag.com",
+  "https://presnag.vercel.app",
+];
 
 // In local dev, accept any localhost port so the app works even if Vite
 // bumps off 5173 (e.g. when another process already holds it).
