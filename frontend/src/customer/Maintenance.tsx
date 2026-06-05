@@ -1,6 +1,6 @@
-import { Wrench, Phone, User } from "lucide-react";
+import { Wrench, Phone, Mail } from "lucide-react";
 
-const OWNER_NAME = "Chirag Luhach";
+const SUPPORT_EMAIL = "support@presnag.com";
 const OWNER_PHONE = "8130809374";
 
 export default function Maintenance() {
@@ -25,14 +25,17 @@ export default function Maintenance() {
           please check back soon.
         </p>
 
-        {/* Contact owner */}
+        {/* Contact support */}
         <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-left">
           <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Please contact the owner
+            Please contact support
           </p>
-          <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <User className="h-4 w-4 text-slate-400" /> {OWNER_NAME}
-          </div>
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-800 hover:text-brand-600"
+          >
+            <Mail className="h-4 w-4 text-slate-400" /> {SUPPORT_EMAIL}
+          </a>
           <a
             href={`tel:${OWNER_PHONE}`}
             className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 active:scale-[0.99]"
