@@ -22,7 +22,17 @@ export function createApp() {
   );
   app.use(express.json({ limit: "2mb" }));
 
-  app.get("/api/health", (_req, res) => res.json({ ok: true, service: "presnag-api" }));
+  // Health check — used by UptimeRobot to keep the free Render instance awake.
+  const health = (_req: express.Request, res: express.Response) =>
+    res.json({
+      ok: true,
+      service: "presnag-api",
+      uptime: Math.floor(process.uptime()),
+      timestamp: new Date().toISOString(),
+    });
+  app.get("/", health);
+  app.get("/health", health);
+  app.get("/api/health", health);
 
   app.use("/api/auth", authRoutes);
   app.use("/api/public", publicRoutes);
