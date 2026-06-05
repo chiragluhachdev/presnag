@@ -4,11 +4,21 @@ import { MenuCategory } from "../models/MenuCategory";
 import { MenuItem } from "../models/MenuItem";
 import { Order } from "../models/Order";
 import { Coupon } from "../models/Coupon";
+import { getSettings } from "../models/Setting";
 import { asyncH, HttpError } from "../middleware/error";
 import { genOrderNumber } from "../utils/helpers";
 import { emitNewOrder } from "../realtime/io";
 
 const router = Router();
+
+// Public platform settings (e.g. maintenance-mode flag for the storefront).
+router.get(
+  "/settings",
+  asyncH(async (_req, res) => {
+    const settings = await getSettings();
+    res.json({ maintenanceMode: settings.maintenanceMode });
+  })
+);
 
 // List active vendors with optional search + category filter.
 router.get(

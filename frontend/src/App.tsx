@@ -1,4 +1,6 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 
 // Customer (public)
 import Home from "@/customer/Home";
@@ -7,6 +9,7 @@ import VendorPage from "@/customer/VendorPage";
 import Checkout from "@/customer/Checkout";
 import OrderConfirmation from "@/customer/OrderConfirmation";
 import OrderTracking from "@/customer/OrderTracking";
+import Maintenance from "@/customer/Maintenance";
 import { About, Terms, Privacy } from "@/customer/StaticPages";
 
 // Vendor
@@ -31,6 +34,21 @@ import AdminAnalytics from "@/admin/Analytics";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 export default function App() {
+  const location = useLocation();
+  // Admin area stays reachable during maintenance so the owner can toggle it off.
+  const isAdminArea = location.pathname.startsWith("/admin");
+
+  const { data: settings } = useQuery({
+    queryKey: ["public-settings"],
+    queryFn: () => api<{ maintenanceMode: boolean }>("/api/public/settings"),
+    refetchInterval: 30000,
+    staleTime: 15000,
+  });
+
+  if (settings?.maintenanceMode && !isAdminArea) {
+    return <Maintenance />;
+  }
+
   return (
     <Routes>
       {/* ---------------- Customer (public) ---------------- */}

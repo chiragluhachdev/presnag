@@ -3,6 +3,7 @@ import { Vendor } from "../models/Vendor";
 import { Order } from "../models/Order";
 import { MenuCategory } from "../models/MenuCategory";
 import { MenuItem } from "../models/MenuItem";
+import { getSettings } from "../models/Setting";
 import { authenticate, requireRole } from "../middleware/auth";
 import { asyncH, HttpError } from "../middleware/error";
 import { hashPassword } from "../utils/auth";
@@ -11,6 +12,27 @@ import { slugify } from "../utils/helpers";
 const router = Router();
 
 router.use(authenticate, requireRole("ADMIN", "SUPER_ADMIN"));
+
+// ---- Platform settings (maintenance mode) ----
+router.get(
+  "/settings",
+  asyncH(async (_req, res) => {
+    const settings = await getSettings();
+    res.json({ maintenanceMode: settings.maintenanceMode });
+  })
+);
+
+router.put(
+  "/settings",
+  asyncH(async (req, res) => {
+    const settings = await getSettings();
+    if (typeof req.body.maintenanceMode === "boolean") {
+      settings.maintenanceMode = req.body.maintenanceMode;
+    }
+    await settings.save();
+    res.json({ maintenanceMode: settings.maintenanceMode });
+  })
+);
 
 // ---- Platform overview ----
 router.get(

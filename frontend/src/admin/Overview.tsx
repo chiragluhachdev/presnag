@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench } from "lucide-react";
 import { api } from "@/lib/api";
 import { Spinner } from "@/components/ui";
-import { rupees } from "@/lib/utils";
+import { toast } from "@/components/ui/toast";
+import { rupees, cn } from "@/lib/utils";
 
 interface Overview {
   totalVendors: number;
@@ -36,6 +37,8 @@ export default function Overview() {
   return (
     <div className="space-y-8">
       <PageHeader title="Platform Overview" subtitle="A snapshot of vendors, orders and revenue across PreSnag." />
+
+      <MaintenanceToggle />
 
       {/* Revenue highlight cards */}
       <div className="grid gap-5 lg:grid-cols-2">
@@ -83,6 +86,87 @@ export function PageHeader({ title, subtitle }: { title: string; subtitle?: stri
     <div>
       <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{title}</h1>
       {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+    </div>
+  );
+}
+
+function MaintenanceToggle() {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["admin-settings"],
+    queryFn: () => api<{ maintenanceMode: boolean }>("/api/admin/settings", { auth: true }),
+  });
+  const on = !!data?.maintenanceMode;
+
+  const mutation = useMutation({
+    mutationFn: (maintenanceMode: boolean) =>
+      api<{ maintenanceMode: boolean }>("/api/admin/settings", {
+        method: "PUT",
+        auth: true,
+        body: { maintenanceMode },
+      }),
+    onSuccess: (res) => {
+      qc.setQueryData(["admin-settings"], res);
+      qc.invalidateQueries({ queryKey: ["public-settings"] });
+      toast.success(res.maintenanceMode ? "Maintenance mode is ON — site shows the under-development page." : "Maintenance mode is OFF — site is live.");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update"),
+  });
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-4 rounded-2xl border p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between",
+        on ? "border-amber-300 bg-amber-50" : "border-slate-200 bg-white"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+            on ? "bg-amber-100 text-amber-600" : "bg-slate-100 text-slate-500"
+          )}
+        >
+          <Wrench className="h-5 w-5" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-900">Maintenance Mode</h3>
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                on ? "bg-amber-500 text-white" : "bg-slate-200 text-slate-600"
+              )}
+            >
+              {on ? "On" : "Off"}
+            </span>
+          </div>
+          <p className="mt-0.5 max-w-xl text-xs text-slate-500">
+            When ON, visitors see an "under development" page with your contact details. The admin
+            dashboard stays accessible so you can turn it back off.
+          </p>
+        </div>
+      </div>
+
+      {/* Toggle switch */}
+      <button
+        type="button"
+        disabled={mutation.isPending || !data}
+        onClick={() => mutation.mutate(!on)}
+        className={cn(
+          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition disabled:opacity-50",
+          on ? "bg-amber-500" : "bg-slate-300"
+        )}
+        aria-pressed={on}
+        title="Toggle maintenance mode"
+      >
+        <span
+          className={cn(
+            "inline-block h-5 w-5 transform rounded-full bg-white shadow transition",
+            on ? "translate-x-6" : "translate-x-1"
+          )}
+        />
+      </button>
     </div>
   );
 }
