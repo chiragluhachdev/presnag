@@ -31,9 +31,7 @@ export default function Maintenance() {
             Please contact support
           </p>
           <a
-            href={`mailto:${SUPPORT_EMAIL}?subject=PreSnag%20Support`}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={`mailto:${SUPPORT_EMAIL}`}
             className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 active:scale-[0.99]"
           >
             <Mail className="h-4 w-4" /> {SUPPORT_EMAIL}
