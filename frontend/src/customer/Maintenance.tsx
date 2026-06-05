@@ -31,14 +31,16 @@ export default function Maintenance() {
             Please contact support
           </p>
           <a
-            href={`mailto:${SUPPORT_EMAIL}`}
-            className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-800 hover:text-brand-600"
+            href={`mailto:${SUPPORT_EMAIL}?subject=PreSnag%20Support`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 active:scale-[0.99]"
           >
-            <Mail className="h-4 w-4 text-slate-400" /> {SUPPORT_EMAIL}
+            <Mail className="h-4 w-4" /> {SUPPORT_EMAIL}
           </a>
           <a
             href={`tel:${OWNER_PHONE}`}
-            className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 active:scale-[0.99]"
+            className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:text-brand-600 active:scale-[0.99]"
           >
             <Phone className="h-4 w-4" /> {OWNER_PHONE}
           </a>
