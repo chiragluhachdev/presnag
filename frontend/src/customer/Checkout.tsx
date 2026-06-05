@@ -32,8 +32,7 @@ export default function Checkout() {
   const [placing, setPlacing] = useState(false);
 
   const subtotal = cart.subtotal();
-  const tax = Math.round((subtotal - discount) * 0.05);
-  const total = subtotal - discount + tax;
+  const total = subtotal - discount;
   const itemCount = cart.lines.reduce((n, l) => n + l.qty, 0);
   const prepTime = vendorData?.vendor.prepTime;
 
@@ -294,11 +293,7 @@ export default function Checkout() {
                     <span>−{rupees(discount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-slate-500">
-                  <span>Taxes (5%)</span>
-                  <span>{rupees(tax)}</span>
-                </div>
-                
+
                 <div className="flex justify-between border-t border-slate-100 pt-4 text-base font-bold text-slate-900">
                   <span>Total Amount</span>
                   <span>{rupees(total)}</span>

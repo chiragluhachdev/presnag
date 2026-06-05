@@ -138,8 +138,8 @@ router.post(
       }
     }
 
-    const tax = Math.round((subtotal - discount) * 0.05); // 5% GST
-    const total = subtotal - discount + tax;
+    const tax = 0; // No extra charges — customer pays exactly the item total (minus any discount).
+    const total = subtotal - discount;
     const method = paymentMethod === "RAZORPAY" ? "RAZORPAY" : "COD";
 
     const order = await Order.create({
