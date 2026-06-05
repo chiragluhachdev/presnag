@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Wallet, CreditCard, Tag, Loader2 } from "lucide-react";
+import { Wallet, CreditCard, Tag, Loader2, Info, ShoppingCart, CheckCircle2, Store, Clock, ShieldCheck, User, Phone, FileText, Circle, Smartphone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Order, Vendor } from "@/lib/types";
@@ -34,14 +34,22 @@ export default function Checkout() {
   const subtotal = cart.subtotal();
   const tax = Math.round((subtotal - discount) * 0.05);
   const total = subtotal - discount + tax;
+  const itemCount = cart.lines.reduce((n, l) => n + l.qty, 0);
+  const prepTime = vendorData?.vendor.prepTime;
 
   if (cart.lines.length === 0) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-slate-50/50">
         <SiteHeader />
-        <div className="flex flex-col items-center justify-center gap-4 py-32">
-          <p className="text-slate-500">Your cart is empty.</p>
-          <Link to="/" className="text-brand-600 underline">Browse vendors</Link>
+        <div className="mx-auto flex max-w-md flex-col items-center justify-center gap-4 py-32 px-4 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+            <ShoppingCart className="h-8 w-8" />
+          </div>
+          <h2 className="text-lg font-semibold text-slate-900">Your cart is empty</h2>
+          <p className="text-sm text-slate-500">Looks like you haven't added anything to your cart yet.</p>
+          <Link to="/" className="mt-2">
+            <Button>Browse vendors</Button>
+          </Link>
         </div>
       </div>
     );
@@ -71,7 +79,6 @@ export default function Checkout() {
     }
     setPlacing(true);
 
-    // Razorpay is a placeholder — hit the stub endpoint, then place the order as pending.
     if (method === "RAZORPAY") {
       try {
         const stub = await api<{ message: string }>("/api/payments/razorpay/order", {
@@ -111,126 +118,248 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-50 pb-28 md:pb-12">
       <SiteHeader />
-      <div className="mx-auto max-w-3xl px-4 py-6">
-        <Link to={`/vendor/${cart.vendorSlug}`} className="mb-4 inline-flex items-center gap-1 text-sm text-slate-600">
-          <ArrowLeft className="h-4 w-4" /> Back to {cart.vendorName}
-        </Link>
-        <h1 className="mb-6 text-2xl font-bold">Checkout</h1>
+      <div className="mx-auto max-w-4xl px-4 pt-2 pb-6 md:pt-4 md:pb-8">
+        
+        {/* Header */}
+        <div className="mb-3 flex items-center gap-1.5 sm:gap-2">
+          {/* Tweak the -top class below to shift the icon up/down as needed */}
+          <ShieldCheck 
+            className="relative -top-[2px] min-[375px]:-top-[3px] h-5 min-[375px]:h-6 w-5 min-[375px]:w-6 text-brand-500 shrink-0" 
+            strokeWidth={2} 
+          />
+          <div className="leading-tight">
+            <h1 className="text-base min-[375px]:text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap">
+              Secure Checkout
+            </h1>
+            <p className="text-xs text-slate-500 whitespace-nowrap">
+              Your order will be confirmed instantly
+            </p>
+          </div>
+        </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Customer details */}
-          <div className="space-y-4">
-            <Card className="p-5">
-              <h3 className="mb-3 font-semibold">Your Details</h3>
-              <div className="space-y-3">
-                <div>
-                  <Label>Name *</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+        {/* Demo Notice */}
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-brand-100 bg-brand-50/50 px-3 py-2.5">
+          <Info className="h-4 w-4 text-brand-600 shrink-0" />
+          <div className="text-xs text-brand-800">
+            <span className="font-semibold">Demo mode active:</span> No real payment will be processed.
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-12 md:gap-8">
+
+          {/* Left Column: Forms */}
+          <div className="space-y-4 md:col-span-7 md:space-y-6">
+            
+            {/* Contact Details */}
+            <Card className="border-slate-200/60 shadow-sm p-3 min-[375px]:p-4 md:p-5">
+              <div className="mb-3 min-[375px]:mb-4 flex items-center justify-between">
+                <h3 className="text-sm min-[375px]:text-base font-semibold text-slate-900">Contact Details</h3>
+                <User className="h-4 w-4 min-[375px]:h-5 min-[375px]:w-5 text-brand-500" />
+              </div>
+              <div className="space-y-3 min-[375px]:space-y-4">
+                <div className="space-y-1 min-[375px]:space-y-1.5">
+                  <Label className="text-[10px] min-[375px]:text-xs font-medium text-slate-700">Full Name *</Label>
+                  <div className="relative">
+                    <User className="absolute left-2.5 min-[375px]:left-3 top-1/2 h-3.5 w-3.5 min-[375px]:h-4 min-[375px]:w-4 -translate-y-1/2 text-slate-400" />
+                    <Input 
+                      value={name} 
+                      onChange={(e) => setName(e.target.value)} 
+                      placeholder="John Doe" 
+                      className="h-9 min-[375px]:h-10 pl-8 min-[375px]:pl-9 text-xs min-[375px]:text-sm"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label>Phone Number *</Label>
-                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit mobile" />
+                <div className="space-y-1 min-[375px]:space-y-1.5">
+                  <Label className="text-[10px] min-[375px]:text-xs font-medium text-slate-700">Phone Number *</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-2.5 min-[375px]:left-3 top-1/2 h-3.5 w-3.5 min-[375px]:h-4 min-[375px]:w-4 -translate-y-1/2 text-slate-400" />
+                    <Input 
+                      value={phone} 
+                      onChange={(e) => setPhone(e.target.value)} 
+                      placeholder="10-digit mobile" 
+                      type="tel"
+                      className="h-9 min-[375px]:h-10 pl-8 min-[375px]:pl-9 text-xs min-[375px]:text-sm"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label>Note (optional)</Label>
-                  <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Any note for the vendor" />
+                <div className="space-y-1 min-[375px]:space-y-1.5">
+                  <Label className="text-[10px] min-[375px]:text-xs font-medium text-slate-700">Order Notes (Optional)</Label>
+                  <div className="relative">
+                    <FileText className="absolute left-2.5 min-[375px]:left-3 top-3 h-3.5 w-3.5 min-[375px]:h-4 min-[375px]:w-4 text-slate-400" />
+                    <Textarea 
+                      value={note} 
+                      onChange={(e) => setNote(e.target.value)} 
+                      rows={2} 
+                      placeholder="E.g., Please ensure the food is extra spicy..." 
+                      className="resize-none pl-8 min-[375px]:pl-9 py-2 min-[375px]:py-2.5 text-xs min-[375px]:text-sm min-h-[40px] min-[375px]:min-h-[44px]"
+                    />
+                  </div>
                 </div>
               </div>
             </Card>
 
-            <Card className="p-5">
-              <h3 className="mb-3 font-semibold">Payment Method</h3>
-              <div className="space-y-2">
+            {/* Payment Method */}
+            <Card className="border-slate-200/60 shadow-sm p-3 min-[375px]:p-4 md:p-5">
+              <div className="mb-3 min-[375px]:mb-4 flex items-center justify-between">
+                <h3 className="text-sm min-[375px]:text-base font-semibold text-slate-900">Payment Method</h3>
+                <CreditCard className="h-4 w-4 min-[375px]:h-5 min-[375px]:w-5 text-brand-500" />
+              </div>
+              <div className="space-y-2.5 min-[375px]:space-y-3">
                 <button
                   onClick={() => setMethod("COD")}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-lg border p-3 text-left",
-                    method === "COD" ? "border-brand-500 bg-brand-50" : "border-slate-200"
+                    "relative flex w-full items-center gap-2 min-[375px]:gap-3 rounded-xl border p-3 min-[375px]:p-4 text-left transition-all",
+                    method === "COD" 
+                      ? "border-brand-500 bg-brand-50/20 ring-1 ring-brand-500 shadow-sm" 
+                      : "border-slate-200 bg-white hover:border-slate-300"
                   )}
                 >
-                  <Wallet className="h-5 w-5 text-brand-600" />
-                  <div>
-                    <div className="font-medium">Cash On Pickup</div>
-                    <div className="text-xs text-slate-500">Pay when you collect your order</div>
+                  <Wallet className={cn("h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 shrink-0", method === "COD" ? "text-brand-500" : "text-slate-400")} />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn("text-xs min-[375px]:text-sm font-semibold", method === "COD" ? "text-slate-900" : "text-slate-700")}>
+                        Cash On Pickup
+                      </span>
+                      <div className="flex items-center gap-0.5 rounded border border-slate-200/80 bg-slate-50 px-1.5 py-0.5 select-none scale-95 origin-left shrink-0">
+                        <span className="font-black text-emerald-600 tracking-wider text-[9px] leading-none">CASH</span>
+                      </div>
+                    </div>
+                    <div className="mt-0.5 text-[10px] min-[375px]:text-xs text-slate-500">Pay at the counter when collecting your order</div>
                   </div>
+                  {method === "COD" ? (
+                    <CheckCircle2 className="h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 text-brand-500 fill-brand-500 text-white shrink-0" />
+                  ) : (
+                    <Circle className="h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 text-slate-200 shrink-0" />
+                  )}
                 </button>
+
                 <button
                   onClick={() => setMethod("RAZORPAY")}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-lg border p-3 text-left",
-                    method === "RAZORPAY" ? "border-brand-500 bg-brand-50" : "border-slate-200"
+                    "relative flex w-full items-center gap-2 min-[375px]:gap-3 rounded-xl border p-3 min-[375px]:p-4 text-left transition-all",
+                    method === "RAZORPAY" 
+                      ? "border-brand-500 bg-brand-50/20 ring-1 ring-brand-500 shadow-sm" 
+                      : "border-slate-200 bg-white hover:border-slate-300"
                   )}
                 >
-                  <CreditCard className="h-5 w-5 text-brand-600" />
-                  <div>
-                    <div className="font-medium">Pay Online (Razorpay)</div>
-                    <div className="text-xs text-amber-600">Placeholder — not charged in this demo</div>
+                  <Smartphone className={cn("h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 shrink-0", method === "RAZORPAY" ? "text-brand-500" : "text-slate-400")} />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn("text-xs min-[375px]:text-sm font-semibold", method === "RAZORPAY" ? "text-slate-900" : "text-slate-700")}>
+                        Pay Online
+                      </span>
+                      <div className="flex items-center gap-0.5 rounded border border-slate-200/80 bg-slate-50 px-1.5 py-0.5 select-none scale-95 origin-left shrink-0">
+                        <span className="font-black text-[#0654A2] tracking-wider text-[9px] leading-none">UPI</span>
+                        <svg className="h-2 w-auto" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <polygon points="1,1 5,6 1,11 4,11 8,6 4,1" fill="#F47920" />
+                          <polygon points="6,1 10,6 6,11 9,11 13,6 9,1" fill="#0FA76F" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="mt-0.5 text-[10px] min-[375px]:text-xs text-slate-500">
+                      GPay, PhonePe, Paytm, Cards
+                    </div>
                   </div>
+                  {method === "RAZORPAY" ? (
+                    <CheckCircle2 className="h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 text-brand-500 fill-brand-500 text-white shrink-0" />
+                  ) : (
+                    <Circle className="h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 text-slate-200 shrink-0" />
+                  )}
                 </button>
               </div>
             </Card>
           </div>
 
-          {/* Order summary */}
-          <div>
-            <Card className="p-5">
-              <h3 className="mb-3 font-semibold">Order Summary</h3>
-              <div className="space-y-2">
+          {/* Right Column: Order Summary */}
+          <div className="md:col-span-5">
+            <Card className="sticky top-6 border-slate-200/60 shadow-sm p-4 md:p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-base font-semibold text-slate-900">Order Summary</h3>
+                <span className="rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700">
+                  {itemCount} {itemCount === 1 ? "item" : "items"}
+                </span>
+              </div>
+              <div className="mb-5 flex items-center gap-3 text-xs text-slate-600">
+                <span className="flex items-center gap-1.5">
+                  <Store className="h-4 w-4 text-slate-400" />
+                  {cart.vendorName}
+                </span>
+                <span className="h-3 w-px bg-slate-300" />
+                {prepTime != null && (
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4 text-slate-400" />
+                    ~{prepTime} min
+                  </span>
+                )}
+              </div>
+
+              {/* Items */}
+              <div className="space-y-4 mb-6">
                 {cart.lines.map((l) => (
-                  <div key={l.itemId} className="flex justify-between text-sm">
-                    <span className="text-slate-600">{l.qty} × {l.name}</span>
-                    <span>{rupees(l.price * l.qty)}</span>
+                  <div key={l.itemId} className="flex items-start justify-between text-sm">
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-6 items-center justify-center rounded bg-slate-100 px-2 text-xs font-semibold text-slate-700">
+                        {l.qty}x
+                      </span>
+                      <span className="text-slate-700 pt-0.5">{l.name}</span>
+                    </div>
+                    <span className="font-medium text-slate-900 pt-0.5">{rupees(l.price * l.qty)}</span>
                   </div>
                 ))}
               </div>
 
-              {/* Coupon */}
-              <div className="mt-4 flex gap-2">
-                <div className="relative flex-1">
-                  <Tag className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    value={coupon}
-                    onChange={(e) => setCoupon(e.target.value.toUpperCase())}
-                    placeholder="Coupon code"
-                    className="pl-8"
-                  />
+              {/* Totals */}
+              <div className="space-y-3 border-t border-slate-100 pt-4 text-sm">
+                <div className="flex justify-between text-slate-500">
+                  <span>Subtotal</span>
+                  <span>{rupees(subtotal)}</span>
                 </div>
-                <Button variant="outline" onClick={applyCoupon}>Apply</Button>
-              </div>
-
-              <div className="mt-4 space-y-1 border-t border-slate-100 pt-3 text-sm">
-                <div className="flex justify-between"><span className="text-slate-500">Subtotal</span><span>{rupees(subtotal)}</span></div>
                 {discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount ({appliedCode})</span><span>−{rupees(discount)}</span>
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Discount ({appliedCode})</span>
+                    <span>−{rupees(discount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between"><span className="text-slate-500">Tax (5%)</span><span>{rupees(tax)}</span></div>
-                <div className="flex justify-between border-t border-slate-100 pt-2 text-base font-bold">
-                  <span>Total</span><span>{rupees(total)}</span>
+                <div className="flex justify-between text-slate-500">
+                  <span>Taxes (5%)</span>
+                  <span>{rupees(tax)}</span>
+                </div>
+                
+                <div className="flex justify-between border-t border-slate-100 pt-4 text-base font-bold text-slate-900">
+                  <span>Total Amount</span>
+                  <span>{rupees(total)}</span>
                 </div>
               </div>
-
-              {isStoreClosed && (
-                <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-center text-xs font-semibold text-red-800">
-                  🚫 This store is currently closed and not accepting orders.
-                </div>
-              )}
-
-              <Button 
-                className="mt-4 w-full" 
-                size="lg" 
-                onClick={placeOrder} 
-                disabled={placing || isStoreClosed || loadingVendor}
-              >
-                {placing && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isStoreClosed ? "Store is Closed" : method === "COD" ? "Place Order" : "Pay & Place Order"}
-              </Button>
             </Card>
           </div>
+          
         </div>
+      </div>
+
+      {/* Fixed Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white p-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] md:static md:border-none md:bg-transparent md:p-0 md:shadow-none md:mt-8 mx-auto max-w-4xl px-4 md:px-0">
+        {isStoreClosed ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center text-sm font-medium text-red-800">
+            🚫 Store is currently closed
+          </div>
+        ) : (
+          <Button 
+            className="w-full h-14 text-base font-semibold shadow-md bg-brand-500 hover:bg-brand-600 text-white rounded-xl flex items-center justify-center gap-2" 
+            onClick={placeOrder} 
+            disabled={placing || loadingVendor}
+          >
+            {placing ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <ShieldCheck className="h-5 w-5" />
+                <span>Confirm Order • {rupees(total)}</span>
+              </>
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );

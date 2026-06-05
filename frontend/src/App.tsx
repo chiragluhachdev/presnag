@@ -7,6 +7,7 @@ import VendorPage from "@/customer/VendorPage";
 import Checkout from "@/customer/Checkout";
 import OrderConfirmation from "@/customer/OrderConfirmation";
 import OrderTracking from "@/customer/OrderTracking";
+import { About, Terms, Privacy } from "@/customer/StaticPages";
 
 // Vendor
 import VendorLogin from "@/vendor/VendorLogin";
@@ -38,6 +39,9 @@ export default function App() {
       <Route path="/track/:orderNumber" element={<OrderTracking />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/order/:orderNumber" element={<OrderConfirmation />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/privacy" element={<Privacy />} />
 
       {/* ---------------- Vendor ----------------
           Static /vendor/* routes outrank the dynamic /vendor/:slug store page. */}
