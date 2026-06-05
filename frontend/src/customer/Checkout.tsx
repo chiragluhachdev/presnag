@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Wallet, CreditCard, Tag, Loader2, Info, ShoppingCart, CheckCircle2, Store, Clock, ShieldCheck, User, Phone, FileText, Circle, Smartphone } from "lucide-react";
+import { CreditCard, Tag, Loader2, Info, ShoppingCart, CheckCircle2, Store, Clock, ShieldCheck, User, Phone, FileText, Circle, Smartphone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Order, Vendor } from "@/lib/types";
@@ -25,7 +25,7 @@ export default function Checkout() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
-  const [method, setMethod] = useState<"COD" | "RAZORPAY">("COD");
+  const [method, setMethod] = useState<"COD" | "RAZORPAY">("RAZORPAY");
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
   const [appliedCode, setAppliedCode] = useState("");
@@ -207,34 +207,6 @@ export default function Checkout() {
                 <CreditCard className="h-4 w-4 min-[375px]:h-5 min-[375px]:w-5 text-brand-500" />
               </div>
               <div className="space-y-2.5 min-[375px]:space-y-3">
-                <button
-                  onClick={() => setMethod("COD")}
-                  className={cn(
-                    "relative flex w-full items-center gap-2 min-[375px]:gap-3 rounded-xl border p-3 min-[375px]:p-4 text-left transition-all",
-                    method === "COD" 
-                      ? "border-brand-500 bg-brand-50/20 ring-1 ring-brand-500 shadow-sm" 
-                      : "border-slate-200 bg-white hover:border-slate-300"
-                  )}
-                >
-                  <Wallet className={cn("h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 shrink-0", method === "COD" ? "text-brand-500" : "text-slate-400")} />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className={cn("text-xs min-[375px]:text-sm font-semibold", method === "COD" ? "text-slate-900" : "text-slate-700")}>
-                        Cash On Pickup
-                      </span>
-                      <div className="flex items-center gap-0.5 rounded border border-slate-200/80 bg-slate-50 px-1.5 py-0.5 select-none scale-95 origin-left shrink-0">
-                        <span className="font-black text-emerald-600 tracking-wider text-[9px] leading-none">CASH</span>
-                      </div>
-                    </div>
-                    <div className="mt-0.5 text-[10px] min-[375px]:text-xs text-slate-500">Pay at the counter when collecting your order</div>
-                  </div>
-                  {method === "COD" ? (
-                    <CheckCircle2 className="h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 text-brand-500 fill-brand-500 text-white shrink-0" />
-                  ) : (
-                    <Circle className="h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 text-slate-200 shrink-0" />
-                  )}
-                </button>
-
                 <button
                   onClick={() => setMethod("RAZORPAY")}
                   className={cn(
