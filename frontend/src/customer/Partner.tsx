@@ -22,7 +22,7 @@ export default function Partner() {
     const prevDesc = meta.getAttribute("content");
     meta.setAttribute(
       "content",
-      "Join PreSnag and accept pre-orders, reduce queues, and grow your business with zero per-order commission."
+      "Join PreSnag and accept pre-orders, reduce queues, and grow your business — no monthly fees, just 5% per order."
     );
     // Smooth-scroll for the in-page anchor nav (scoped to this page).
     document.documentElement.classList.add("scroll-smooth");
@@ -139,7 +139,7 @@ function Hero() {
             </Link>
           </div>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-semibold text-white/90 md:justify-start">
-            <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-amber-200" /> Zero per-order commission</span>
+            <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-amber-200" /> No monthly fees</span>
             <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-amber-200" /> No app required</span>
             <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-amber-200" /> Live in minutes</span>
           </div>
@@ -260,8 +260,8 @@ function Benefits() {
     { icon: CreditCard, emoji: "💳", title: "Secure Online Payments", desc: "Cashfree-powered, fully secure checkout." },
     { icon: TrendingUp, emoji: "📈", title: "Better Experience", desc: "Smooth pickups keep customers coming back." },
     { icon: Smartphone, emoji: "📱", title: "Easy Menu Management", desc: "Update items and prices anytime, instantly." },
-    { icon: Target, emoji: "🎯", title: "Zero Commission", desc: "Keep 100% of every order. No cut, ever." },
-    { icon: BadgeIndianRupee, emoji: "💰", title: "Simple ₹600/month", desc: "One flat price. Unlimited orders." },
+    { icon: Target, emoji: "🎯", title: "No Monthly Fees", desc: "No fixed costs — pay only when you get an order." },
+    { icon: BadgeIndianRupee, emoji: "💰", title: "Simple 5% Per Order", desc: "One small fee per sale. Nothing else." },
     { icon: Globe, emoji: "🏪", title: "Your Own Store Page", desc: "presnag.com/your-cafe, ready to share." },
   ];
   return (
@@ -330,14 +330,14 @@ function Pricing() {
     "Dedicated store page",
     "Secure online payments",
     "Full vendor dashboard",
-    "No commission on orders",
+    "No monthly or setup fees",
   ];
   return (
     <Section id="pricing" className="bg-white">
       <div className="text-center">
         <Eyebrow>Pricing</Eyebrow>
         <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">One simple plan</h2>
-        <p className="mt-3 text-slate-500">No hidden fees. No per-order cut. Cancel anytime.</p>
+        <p className="mt-3 text-slate-500">No monthly fees. No setup cost. Pay only when you sell.</p>
       </div>
 
       <div className="mx-auto mt-12 max-w-md">
@@ -348,10 +348,10 @@ function Pricing() {
           <div className="bg-gradient-to-br from-brand-500 to-orange-600 px-7 py-8 text-white">
             <div className="text-sm font-bold uppercase tracking-wide text-brand-50">PreSnag Partner Plan</div>
             <div className="mt-3 flex items-end gap-1">
-              <span className="text-5xl font-black">₹600</span>
-              <span className="mb-1.5 text-brand-50">/month</span>
+              <span className="text-5xl font-black">5%</span>
+              <span className="mb-1.5 text-brand-50">/order</span>
             </div>
-            <div className="mt-1 text-sm text-brand-50/90">Flat pricing • Zero per-order commission</div>
+            <div className="mt-1 text-sm text-brand-50/90">Pay only when you sell • No monthly fees</div>
           </div>
           <div className="px-7 py-7">
             <ul className="space-y-3">
@@ -384,7 +384,7 @@ function Pricing() {
 function Faq() {
   const faqs = [
     { q: "How do I receive payments?", a: "Customers pay online at checkout. You choose PreSnag-Managed settlement (we settle to your bank daily) or Direct Settlement (payments land in your account instantly per order via Cashfree)." },
-    { q: "How much does PreSnag charge?", a: "A flat ₹600/month — that's it. We take zero commission on your orders, so you keep 100% of every sale." },
+    { q: "How much does PreSnag charge?", a: "Just 5% per order — and nothing else. There are no monthly fees and no setup costs, so you only pay when you actually make a sale." },
     { q: "How long does onboarding take?", a: "Just a few minutes. Register, add your bank details, upload your menu, and once approved your store goes live." },
     { q: "Can I update my menu anytime?", a: "Yes. Add, edit, hide or remove items and prices anytime from your vendor dashboard — changes apply instantly." },
     { q: "Do customers need an app?", a: "No. Customers order directly from their browser via your store link or a QR code. Nothing to download." },
