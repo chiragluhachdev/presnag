@@ -215,6 +215,15 @@ async function seed() {
       prepTime: 10 + Math.floor(Math.random() * 10),
       lat: v.lat ?? BASE_LAT + (Math.random() - 0.5) * 0.06,
       lng: v.lng ?? BASE_LNG + (Math.random() - 0.5) * 0.06,
+      // Demo vendors launch in PreSnag-Managed settlement with a (simulated) payout setup.
+      settlementMode: "MANAGED",
+      cashfreeBeneficiaryId: `presnag_demo_${slugify(v.name)}`,
+      managedPayout: {
+        accountHolderName: v.name,
+        accountNumberLast4: "1234",
+        ifsc: "HDFC0001234",
+        panMasked: "ABXXXX1F",
+      },
     });
     createdVendors.push(vendor);
  

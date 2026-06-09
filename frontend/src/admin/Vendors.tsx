@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Check, X, Ban, Trash2, Power, Store } from "lucide-react";
+import {
+  Plus, Check, Ban, Trash2, Power, Store, Eye, Zap, Banknote, ShieldCheck,
+  Building2, Phone, Mail, MapPin, CircleAlert,
+} from "lucide-react";
 import { api } from "@/lib/api";
 import { Vendor } from "@/lib/types";
 import { Button, Badge, Spinner, Input, Label, Select } from "@/components/ui";
@@ -14,10 +17,17 @@ const statusColor: Record<string, any> = {
   pending: "orange", active: "green", suspended: "red", inactive: "slate",
 };
 
+// A vendor is ready to be listed only once its chosen payout rail is set up.
+function isPayoutReady(v: Vendor): boolean {
+  if (v.settlementMode === "DIRECT") return v.kycStatus === "active";
+  return Boolean(v.cashfreeBeneficiaryId); // MANAGED
+}
+
 export default function Vendors() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState("all");
   const [modal, setModal] = useState(false);
+  const [detail, setDetail] = useState<Vendor | null>(null);
 
   const { data: vendors, isLoading } = useQuery({
     queryKey: ["admin-vendors", filter],
@@ -73,9 +83,17 @@ export default function Vendors() {
                     <div className="text-xs text-slate-500">{v.email} · {v.category}</div>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => setStatus(v._id, "active")}><Check className="h-4 w-4" /> Approve</Button>
-                  <Button size="sm" variant="outline" onClick={() => setStatus(v._id, "inactive")}><X className="h-4 w-4" /> Reject</Button>
+                <div className="flex items-center gap-2">
+                  <SettlementBadge v={v} />
+                  <Button size="sm" variant="outline" onClick={() => setDetail(v)}><Eye className="h-4 w-4" /> Review</Button>
+                  <Button
+                    size="sm"
+                    disabled={!isPayoutReady(v)}
+                    title={isPayoutReady(v) ? "List on PreSnag" : "Payout setup not complete yet"}
+                    onClick={() => setStatus(v._id, "active")}
+                  >
+                    <Check className="h-4 w-4" /> List on PreSnag
+                  </Button>
                 </div>
               </div>
             ))}
@@ -115,14 +133,14 @@ export default function Vendors() {
               <tr>
                 <th className="px-5 py-3">Vendor</th>
                 <th className="px-5 py-3">Category</th>
+                <th className="px-5 py-3">Settlement</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Plan</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {vendors.map((v) => (
-                <tr key={v._id} className="transition hover:bg-slate-50">
+                <tr key={v._id} className="cursor-pointer transition hover:bg-slate-50" onClick={() => setDetail(v)}>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
@@ -135,17 +153,18 @@ export default function Vendors() {
                     </div>
                   </td>
                   <td className="px-5 py-3 text-slate-600">{v.category}</td>
+                  <td className="px-5 py-3"><SettlementBadge v={v} /></td>
                   <td className="px-5 py-3"><Badge color={statusColor[v.status]}>{v.status}</Badge></td>
-                  <td className="px-5 py-3"><Badge>{v.subscriptionPlan}</Badge></td>
-                  <td className="px-5 py-3">
+                  <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1">
+                      <Button size="icon" variant="ghost" title="View details" onClick={() => setDetail(v)}><Eye className="h-4 w-4 text-slate-500" /></Button>
                       {v.status === "pending" && (
-                        <Button size="icon" variant="ghost" title="Approve" onClick={() => setStatus(v._id, "active")}><Check className="h-4 w-4 text-green-600" /></Button>
+                        <Button size="icon" variant="ghost" title={isPayoutReady(v) ? "List on PreSnag" : "Payout setup incomplete"} disabled={!isPayoutReady(v)} onClick={() => setStatus(v._id, "active")}><Check className="h-4 w-4 text-green-600" /></Button>
                       )}
                       {v.status === "active" ? (
                         <Button size="icon" variant="ghost" title="Suspend" onClick={() => setStatus(v._id, "suspended")}><Ban className="h-4 w-4 text-red-500" /></Button>
                       ) : (
-                        <Button size="icon" variant="ghost" title="Activate" onClick={() => setStatus(v._id, "active")}><Power className="h-4 w-4 text-green-600" /></Button>
+                        <Button size="icon" variant="ghost" title="Activate" disabled={!isPayoutReady(v)} onClick={() => setStatus(v._id, "active")}><Power className="h-4 w-4 text-green-600" /></Button>
                       )}
                       <Button size="icon" variant="ghost" title="Delete" onClick={() => remove(v._id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                     </div>
@@ -158,6 +177,122 @@ export default function Vendors() {
       )}
 
       {modal && <CreateVendorModal onClose={() => setModal(false)} onSaved={() => { setModal(false); refresh(); }} />}
+      {detail && (
+        <VendorDetailModal
+          v={detail}
+          onClose={() => setDetail(null)}
+          onAction={async (status) => { await setStatus(detail._id, status); setDetail(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SettlementBadge({ v }: { v: Vendor }) {
+  const direct = v.settlementMode === "DIRECT";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+        direct ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+      )}
+      title={direct ? "Direct Settlement (Cashfree Easy Split)" : "PreSnag Managed (daily payout)"}
+    >
+      {direct ? <Banknote className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
+      {direct ? "Direct" : "Managed"}
+    </span>
+  );
+}
+
+function VendorDetailModal({
+  v, onClose, onAction,
+}: { v: Vendor; onClose: () => void; onAction: (status: string) => void }) {
+  const ready = isPayoutReady(v);
+  const payout = v.managedPayout;
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Vendor details"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>Close</Button>
+          {v.status !== "active" && (
+            <Button disabled={!ready} title={ready ? "" : "Payout setup incomplete"} onClick={() => onAction("active")}>
+              <Check className="h-4 w-4" /> List on PreSnag
+            </Button>
+          )}
+          {v.status === "active" && (
+            <Button variant="outline" onClick={() => onAction("suspended")}><Ban className="h-4 w-4" /> Suspend</Button>
+          )}
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
+            {v.logo ? <img src={v.logo} alt="" className="h-12 w-12 rounded-xl object-cover" /> : <Store className="h-6 w-6 text-slate-400" />}
+          </div>
+          <div>
+            <div className="font-bold text-slate-900">{v.name}</div>
+            <div className="flex items-center gap-2">
+              <Badge color={statusColor[v.status]}>{v.status}</Badge>
+              <SettlementBadge v={v} />
+            </div>
+          </div>
+        </div>
+
+        {/* Contact */}
+        <div className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 p-3 text-sm sm:grid-cols-2">
+          <InfoRow icon={Mail} label="Email" value={v.email || "—"} />
+          <InfoRow icon={Phone} label="Phone" value={v.phone || "—"} />
+          <InfoRow icon={Store} label="Category" value={v.category} />
+          <InfoRow icon={MapPin} label="Address" value={v.address || "—"} />
+        </div>
+
+        {/* Settlement / payout */}
+        <div className="rounded-xl border border-slate-200 p-3">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <Building2 className="h-4 w-4 text-brand-500" /> Settlement & payout
+          </div>
+          {v.settlementMode === "DIRECT" ? (
+            <div className="space-y-1.5 text-sm">
+              <InfoRow icon={Banknote} label="Mode" value="Direct Settlement (Cashfree Easy Split)" />
+              <InfoRow icon={ShieldCheck} label="KYC status" value={v.kycStatus || "not_started"} />
+            </div>
+          ) : (
+            <div className="space-y-1.5 text-sm">
+              <InfoRow icon={Zap} label="Mode" value="PreSnag Managed (daily payout)" />
+              <InfoRow icon={Building2} label="Account holder" value={payout?.accountHolderName || "—"} />
+              <InfoRow icon={Banknote} label="Account" value={payout?.accountNumberLast4 ? `•••• ${payout.accountNumberLast4}` : "—"} />
+              <InfoRow icon={Building2} label="IFSC" value={payout?.ifsc || "—"} />
+              <InfoRow icon={ShieldCheck} label="PAN" value={payout?.panMasked || "—"} />
+            </div>
+          )}
+        </div>
+
+        {/* Readiness banner */}
+        <div className={cn(
+          "flex items-start gap-2 rounded-xl p-3 text-sm",
+          ready ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"
+        )}>
+          {ready ? <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /> : <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />}
+          {ready
+            ? "Payout setup is complete. You can list this vendor on PreSnag."
+            : "Payout setup is not complete yet. The vendor must finish their payout/KYC setup before listing."}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+      <span className="text-slate-400">{label}:</span>
+      <span className="font-medium text-slate-700">{value}</span>
     </div>
   );
 }

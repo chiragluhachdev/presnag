@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Input, Button, Label, Textarea, Card } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { useCart } from "@/store/cartStore";
+import { loadCashfreeSdk, CASHFREE_MODE } from "@/lib/cashfree";
 import { rupees, cn } from "@/lib/utils";
 
 export default function Checkout() {
@@ -78,19 +79,8 @@ export default function Checkout() {
     }
     setPlacing(true);
 
-    if (method === "RAZORPAY") {
-      try {
-        const stub = await api<{ message: string }>("/api/payments/razorpay/order", {
-          method: "POST",
-          body: { amount: total },
-        });
-        toast.info(stub.message);
-      } catch {
-        /* ignore — placeholder */
-      }
-    }
-
     try {
+      // 1. Create the PreSnag order (unpaid until Cashfree confirms payment).
       const order = await api<Order>("/api/public/orders", {
         method: "POST",
         body: {
@@ -98,7 +88,7 @@ export default function Checkout() {
           customerName: name,
           customerPhone: phone,
           note,
-          paymentMethod: method,
+          paymentMethod: "CASHFREE",
           couponCode: appliedCode,
           items: cart.lines.map((l) => ({
             itemId: l.itemId,
@@ -107,7 +97,29 @@ export default function Checkout() {
           })),
         },
       });
+
+      // 2. Create the Cashfree payment order (routes to the vendor per their settlement mode).
+      const pay = await api<{ paymentSessionId: string; demo: boolean }>(
+        "/api/payments/cashfree/order",
+        { method: "POST", body: { orderNumber: order.orderNumber } }
+      );
+
+      // 3a. Demo mode (Cashfree not configured) — simulate a successful payment.
+      if (pay.demo || pay.paymentSessionId?.startsWith("demo_")) {
+        await api("/api/payments/cashfree/demo-confirm", {
+          method: "POST",
+          body: { orderNumber: order.orderNumber },
+        });
+        cart.clear();
+        navigate(`/order/${order.orderNumber}`);
+        return;
+      }
+
+      // 3b. Live mode — open Cashfree checkout; payment is confirmed via webhook.
+      const Cashfree = await loadCashfreeSdk();
+      const cashfree = Cashfree({ mode: CASHFREE_MODE });
       cart.clear();
+      await cashfree.checkout({ paymentSessionId: pay.paymentSessionId, redirectTarget: "_self" });
       navigate(`/order/${order.orderNumber}`);
     } catch (e: any) {
       toast.error(e.message || "Failed to place order");

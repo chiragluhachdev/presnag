@@ -36,6 +36,35 @@ const vendorSchema = new Schema(
       enum: ["starter", "growth", "enterprise"],
       default: "starter",
     },
+
+    // ---- Settlement / payments ----
+    // MANAGED  = PreSnag collects payments, pays the vendor out once daily (Cashfree Payouts).
+    // DIRECT   = Cashfree Easy Split sends 100% straight to the vendor's bank per order.
+    settlementMode: {
+      type: String,
+      enum: ["MANAGED", "DIRECT"],
+      default: "MANAGED",
+      index: true,
+    },
+    // Lets us show the "Switch to Direct Settlement" banner to managed vendors.
+    eligibleForDirectMigration: { type: Boolean, default: true },
+    // Display-only payout details (full bank/PAN live only inside Cashfree).
+    managedPayout: {
+      accountHolderName: { type: String, default: "" },
+      accountNumberLast4: { type: String, default: "" },
+      ifsc: { type: String, default: "" },
+      panMasked: { type: String, default: "" },
+    },
+    // Cashfree Payouts beneficiary id (MANAGED mode).
+    cashfreeBeneficiaryId: { type: String, default: "" },
+    // Cashfree Easy Split sub-merchant id (DIRECT mode).
+    cashfreeVendorId: { type: String, default: "" },
+    // Mirrors Cashfree Easy Split onboarding/KYC status (DIRECT mode).
+    kycStatus: {
+      type: String,
+      enum: ["not_started", "in_progress", "active", "rejected"],
+      default: "not_started",
+    },
     // Optional geo-coordinates for "Nearby" sorting on the homepage.
     lat: { type: Number },
     lng: { type: Number },

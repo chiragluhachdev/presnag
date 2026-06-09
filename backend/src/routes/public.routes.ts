@@ -140,7 +140,7 @@ router.post(
 
     const tax = 0; // No extra charges — customer pays exactly the item total (minus any discount).
     const total = subtotal - discount;
-    const method = paymentMethod === "RAZORPAY" ? "RAZORPAY" : "COD";
+    const method = ["CASHFREE", "RAZORPAY", "COD"].includes(paymentMethod) ? paymentMethod : "CASHFREE";
 
     const order = await Order.create({
       vendorId: vendor.id,
@@ -155,12 +155,14 @@ router.post(
       total,
       couponCode: appliedCode,
       paymentMethod: method,
-      paymentStatus: "pending", // Razorpay is a placeholder; COD paid on pickup.
+      paymentStatus: "pending", // Confirmed via Cashfree webhook (or demo-confirm).
       status: "received",
       pickupTime: `${vendor.prepTime} min`,
     });
 
-    emitNewOrder(vendor.id, order);
+    // The vendor is alerted only after payment succeeds (payment webhook /
+    // demo-confirm calls emitNewOrder). COD orders are alerted immediately.
+    if (method === "COD") emitNewOrder(vendor.id, order);
     res.status(201).json(order);
   })
 );

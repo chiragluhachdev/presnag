@@ -33,10 +33,23 @@ const orderSchema = new Schema(
     discount: { type: Number, default: 0 },
     total: { type: Number, required: true },
     couponCode: { type: String, default: "" },
-    paymentMethod: { type: String, enum: ["COD", "RAZORPAY"], default: "COD" },
+    paymentMethod: { type: String, enum: ["COD", "RAZORPAY", "CASHFREE"], default: "CASHFREE" },
     paymentStatus: { type: String, enum: ["pending", "paid"], default: "pending" },
     status: { type: String, enum: ORDER_STATUSES, default: "received", index: true },
     pickupTime: { type: String, default: "" },
+
+    // ---- Settlement (how this order's money reaches the vendor) ----
+    settlementMode: { type: String, enum: ["MANAGED", "DIRECT"], default: "MANAGED" },
+    // DIRECT orders settle instantly via split → not_applicable.
+    // MANAGED orders wait for the once-daily payout → pending → settled.
+    settlementStatus: {
+      type: String,
+      enum: ["not_applicable", "pending", "processing", "settled", "failed"],
+      default: "not_applicable",
+      index: true,
+    },
+    payoutId: { type: String, default: "" },
+    settledAt: { type: Date },
   },
   { timestamps: true }
 );

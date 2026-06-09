@@ -431,6 +431,14 @@ function DesktopHome({
             >
               <Receipt className="h-4 w-4" /> Track Order
             </button>
+            <a
+              href="/partner"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-brand-500 px-5 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-brand-50"
+            >
+              <Store className="h-4 w-4" /> Become a Partner
+            </a>
             <button
               onClick={useMyLocation}
               disabled={locStatus === "loading"}

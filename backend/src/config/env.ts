@@ -13,10 +13,26 @@ export const env = {
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || "",
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || "rzp_test_placeholder",
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || "placeholder",
+
+  // ---- Cashfree (Payments / Easy Split) ----
+  CASHFREE_ENV: process.env.CASHFREE_ENV || "sandbox", // "sandbox" | "production"
+  CASHFREE_APP_ID: process.env.CASHFREE_APP_ID || "",
+  CASHFREE_SECRET_KEY: process.env.CASHFREE_SECRET_KEY || "",
+  CASHFREE_WEBHOOK_SECRET: process.env.CASHFREE_WEBHOOK_SECRET || "",
+  // ---- Cashfree Payouts (separate credentials) ----
+  CASHFREE_PAYOUT_CLIENT_ID: process.env.CASHFREE_PAYOUT_CLIENT_ID || "",
+  CASHFREE_PAYOUT_CLIENT_SECRET: process.env.CASHFREE_PAYOUT_CLIENT_SECRET || "",
 };
 
 export const cloudinaryEnabled = Boolean(
   env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET
+);
+
+// When Cashfree keys are absent (e.g. local dev) the app runs in a safe "demo"
+// mode: onboarding / payout / payment calls are simulated instead of hitting Cashfree.
+export const cashfreePgEnabled = Boolean(env.CASHFREE_APP_ID && env.CASHFREE_SECRET_KEY);
+export const cashfreePayoutEnabled = Boolean(
+  env.CASHFREE_PAYOUT_CLIENT_ID && env.CASHFREE_PAYOUT_CLIENT_SECRET
 );
 
 // Allowed browser origin (the single frontend app). Extend if you add more.

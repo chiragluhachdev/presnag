@@ -4,6 +4,7 @@ import { Order } from "../models/Order";
 import { MenuCategory } from "../models/MenuCategory";
 import { MenuItem } from "../models/MenuItem";
 import { getSettings } from "../models/Setting";
+import { runManagedSettlement } from "../jobs/dailyPayout";
 import { authenticate, requireRole } from "../middleware/auth";
 import { asyncH, HttpError } from "../middleware/error";
 import { hashPassword } from "../utils/auth";
@@ -69,6 +70,34 @@ router.get(
       monthlyRevenue,
       platformRevenue,
     });
+  })
+);
+
+// ---- Settlements (PreSnag-Managed vendors) ----
+router.get(
+  "/settlements",
+  asyncH(async (_req, res) => {
+    const pending = await Order.aggregate([
+      { $match: { settlementMode: "MANAGED", paymentStatus: "paid", settlementStatus: "pending" } },
+      { $group: { _id: "$vendorId", amount: { $sum: "$total" }, orders: { $sum: 1 } } },
+    ]);
+    const vendors = await Vendor.find({ _id: { $in: pending.map((p) => p._id) } }).select("name");
+    const nameMap = new Map(vendors.map((v) => [v.id, v.name]));
+    const rows = pending.map((p) => ({
+      vendorId: String(p._id),
+      vendorName: nameMap.get(String(p._id)) || "Unknown",
+      amount: p.amount,
+      orders: p.orders,
+    }));
+    res.json({ rows, totalPending: rows.reduce((s, r) => s + r.amount, 0) });
+  })
+);
+
+router.post(
+  "/settlements/run",
+  asyncH(async (_req, res) => {
+    const results = await runManagedSettlement();
+    res.json({ results });
   })
 );
 

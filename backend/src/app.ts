@@ -20,7 +20,15 @@ export function createApp() {
       credentials: true,
     })
   );
-  app.use(express.json({ limit: "2mb" }));
+  // Capture the raw body so webhook routes can verify HMAC signatures.
+  app.use(
+    express.json({
+      limit: "2mb",
+      verify: (req, _res, buf) => {
+        (req as any).rawBody = buf.toString();
+      },
+    })
+  );
 
   // Health check — used by UptimeRobot to keep the free Render instance awake.
   const health = (_req: express.Request, res: express.Response) =>

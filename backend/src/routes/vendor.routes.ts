@@ -8,7 +8,13 @@ import { Coupon } from "../models/Coupon";
 import { authenticate, requireRole } from "../middleware/auth";
 import { asyncH, HttpError } from "../middleware/error";
 import { emitOrderStatus } from "../realtime/io";
-import { env } from "../config/env";
+import { env, cashfreePgEnabled } from "../config/env";
+import {
+  createPayoutBeneficiary,
+  createEasySplitVendor,
+  last4,
+  maskPan,
+} from "../services/cashfree";
 
 const router = Router();
 
@@ -300,6 +306,118 @@ router.get(
       totalRevenue: orders.reduce((s, o) => s + o.total, 0),
       totalOrders: orders.length,
     });
+  })
+);
+
+// ---- Settlement & earnings ----
+// Returns the vendor's settlement config plus today's earnings, pending
+// settlement and last-payout info (used by the dashboard Payments page).
+router.get(
+  "/settlement",
+  asyncH(async (req, res) => {
+    const vendor = await Vendor.findById(vid(req)).select("-passwordHash");
+    if (!vendor) throw new HttpError(404, "Not found");
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const [todayPaid, pendingAgg, lastSettled] = await Promise.all([
+      Order.find({ vendorId: vendor.id, paymentStatus: "paid", createdAt: { $gte: startOfDay } }),
+      Order.aggregate([
+        { $match: { vendorId: vendor._id, settlementMode: "MANAGED", paymentStatus: "paid", settlementStatus: "pending" } },
+        { $group: { _id: null, total: { $sum: "$total" }, count: { $sum: 1 } } },
+      ]),
+      Order.findOne({ vendorId: vendor.id, settlementStatus: "settled" }).sort({ settledAt: -1 }),
+    ]);
+
+    res.json({
+      settlementMode: vendor.settlementMode,
+      kycStatus: vendor.kycStatus,
+      eligibleForDirectMigration: vendor.eligibleForDirectMigration,
+      managedPayout: vendor.managedPayout,
+      hasPayoutSetup:
+        vendor.settlementMode === "DIRECT"
+          ? vendor.kycStatus === "active"
+          : Boolean(vendor.cashfreeBeneficiaryId),
+      todayEarnings: todayPaid.reduce((s, o) => s + o.total, 0),
+      todayOrders: todayPaid.length,
+      pendingSettlement: pendingAgg[0]?.total || 0,
+      pendingOrders: pendingAgg[0]?.count || 0,
+      lastPayoutAt: lastSettled?.settledAt || null,
+    });
+  })
+);
+
+// Set up / update PreSnag-Managed payout bank details (creates a Cashfree
+// Payouts beneficiary; simulated when Cashfree keys are absent).
+router.post(
+  "/settlement/managed",
+  asyncH(async (req, res) => {
+    const { accountHolderName, accountNumber, ifsc, pan } = req.body;
+    if (!accountHolderName || !accountNumber || !ifsc || !pan) {
+      throw new HttpError(400, "Account holder name, account number, IFSC and PAN are required");
+    }
+    const vendor = await Vendor.findById(vid(req));
+    if (!vendor) throw new HttpError(404, "Not found");
+
+    const { beneficiaryId } = await createPayoutBeneficiary(vendor.id, {
+      accountHolderName,
+      accountNumber,
+      ifsc,
+      pan,
+    });
+    vendor.settlementMode = "MANAGED";
+    vendor.cashfreeBeneficiaryId = beneficiaryId;
+    vendor.managedPayout = {
+      accountHolderName,
+      accountNumberLast4: last4(accountNumber),
+      ifsc: String(ifsc).toUpperCase().trim(),
+      panMasked: maskPan(pan),
+    };
+    await vendor.save();
+    res.json({ ok: true, settlementMode: vendor.settlementMode, managedPayout: vendor.managedPayout });
+  })
+);
+
+// Start the one-click migration to Direct Settlement: create the Easy Split
+// vendor and return the Cashfree hosted-onboarding URL to redirect to.
+router.post(
+  "/settlement/switch-direct",
+  asyncH(async (req, res) => {
+    const vendor = await Vendor.findById(vid(req));
+    if (!vendor) throw new HttpError(404, "Not found");
+    if (vendor.settlementMode === "DIRECT" && vendor.kycStatus === "active") {
+      throw new HttpError(400, "Already on Direct Settlement");
+    }
+
+    const { cashfreeVendorId, onboardingUrl } = await createEasySplitVendor({
+      vendorId: vendor.id,
+      name: vendor.name,
+      email: vendor.email,
+      phone: vendor.phone || "",
+    });
+    vendor.cashfreeVendorId = cashfreeVendorId;
+    vendor.kycStatus = "in_progress";
+    await vendor.save();
+    res.json({ onboardingUrl });
+  })
+);
+
+// Demo-only: when Cashfree isn't configured, completes the Direct migration
+// locally (production does this via the Cashfree onboarding webhook).
+router.post(
+  "/settlement/complete-demo-kyc",
+  asyncH(async (req, res) => {
+    if (cashfreePgEnabled) {
+      throw new HttpError(400, "KYC completes via Cashfree onboarding in this environment");
+    }
+    const vendor = await Vendor.findById(vid(req));
+    if (!vendor) throw new HttpError(404, "Not found");
+    vendor.kycStatus = "active";
+    vendor.settlementMode = "DIRECT";
+    if (!vendor.cashfreeVendorId) vendor.cashfreeVendorId = `presnag_${vendor.id}`;
+    await vendor.save();
+    res.json({ ok: true, settlementMode: vendor.settlementMode, kycStatus: vendor.kycStatus });
   })
 );
 

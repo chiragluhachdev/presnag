@@ -2,6 +2,7 @@ import http from "http";
 import { createApp } from "./app";
 import { connectDB } from "./config/db";
 import { initIO } from "./realtime/io";
+import { scheduleDailyPayout } from "./jobs/dailyPayout";
 import { env } from "./config/env";
 
 async function main() {
@@ -28,6 +29,9 @@ async function main() {
     }
   }
   await connectWithRetry();
+
+  // Schedule the once-daily managed-vendor settlement payout.
+  scheduleDailyPayout();
 }
 
 main().catch((err) => {

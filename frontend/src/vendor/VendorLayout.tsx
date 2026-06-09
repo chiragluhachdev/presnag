@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate, Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard, ClipboardList, UtensilsCrossed, Store, QrCode, Ticket, BarChart3, LogOut, Menu, X,
-  Volume2, VolumeX,
+  Volume2, VolumeX, Wallet,
 } from "lucide-react";
 import { useAuth } from "@/store/authStore";
 import { useSound } from "@/store/soundStore";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { to: "/vendor/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/vendor/orders", label: "Orders", icon: ClipboardList },
+  { to: "/vendor/payments", label: "Payments", icon: Wallet },
   { to: "/vendor/menu", label: "Menu", icon: UtensilsCrossed },
   { to: "/vendor/settings", label: "Settings", icon: Store },
   { to: "/vendor/qr", label: "QR Code", icon: QrCode },

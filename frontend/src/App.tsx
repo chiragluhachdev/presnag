@@ -10,13 +10,16 @@ import Checkout from "@/customer/Checkout";
 import OrderConfirmation from "@/customer/OrderConfirmation";
 import OrderTracking from "@/customer/OrderTracking";
 import Maintenance from "@/customer/Maintenance";
+import Partner from "@/customer/Partner";
 import { About, Terms, Privacy } from "@/customer/StaticPages";
 
 // Vendor
 import VendorLogin from "@/vendor/VendorLogin";
+import VendorRegister from "@/vendor/VendorRegister";
 import VendorLayout from "@/vendor/VendorLayout";
 import VendorDashboard from "@/vendor/Dashboard";
 import VendorOrders from "@/vendor/Orders";
+import VendorPayments from "@/vendor/Payments";
 import VendorMenu from "@/vendor/Menu";
 import VendorSettings from "@/vendor/Settings";
 import VendorQR from "@/vendor/QR";
@@ -57,6 +60,7 @@ export default function App() {
       <Route path="/track/:orderNumber" element={<OrderTracking />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/order/:orderNumber" element={<OrderConfirmation />} />
+      <Route path="/partner" element={<Partner />} />
       <Route path="/about" element={<About />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
@@ -64,6 +68,7 @@ export default function App() {
       {/* ---------------- Vendor ----------------
           Static /vendor/* routes outrank the dynamic /vendor/:slug store page. */}
       <Route path="/vendor/login" element={<VendorLogin />} />
+      <Route path="/vendor/register" element={<VendorRegister />} />
       <Route
         path="/vendor"
         element={
@@ -75,6 +80,7 @@ export default function App() {
         <Route index element={<Navigate to="/vendor/dashboard" replace />} />
         <Route path="dashboard" element={<VendorDashboard />} />
         <Route path="orders" element={<VendorOrders />} />
+        <Route path="payments" element={<VendorPayments />} />
         <Route path="menu" element={<VendorMenu />} />
         <Route path="settings" element={<VendorSettings />} />
         <Route path="qr" element={<VendorQR />} />

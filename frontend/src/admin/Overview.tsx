@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench } from "lucide-react";
+import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench, Wallet, Loader2, Banknote } from "lucide-react";
 import { api } from "@/lib/api";
-import { Spinner } from "@/components/ui";
+import { Spinner, Button } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { rupees, cn } from "@/lib/utils";
 
@@ -39,6 +39,8 @@ export default function Overview() {
       <PageHeader title="Platform Overview" subtitle="A snapshot of vendors, orders and revenue across PreSnag." />
 
       <MaintenanceToggle />
+
+      <SettlementsPanel />
 
       {/* Revenue highlight cards */}
       <div className="grid gap-5 lg:grid-cols-2">
@@ -86,6 +88,76 @@ export function PageHeader({ title, subtitle }: { title: string; subtitle?: stri
     <div>
       <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{title}</h1>
       {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+    </div>
+  );
+}
+
+interface SettlementRow { vendorId: string; vendorName: string; amount: number; orders: number; }
+
+function SettlementsPanel() {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["admin-settlements"],
+    queryFn: () => api<{ rows: SettlementRow[]; totalPending: number }>("/api/admin/settlements", { auth: true }),
+  });
+
+  const run = useMutation({
+    mutationFn: () => api<{ results: any[] }>("/api/admin/settlements/run", { method: "POST", auth: true }),
+    onSuccess: (res) => {
+      const settled = res.results.filter((r) => r.status === "settled");
+      const failed = res.results.filter((r) => r.status === "failed");
+      toast.success(`Settled ${settled.length} vendor(s)${failed.length ? `, ${failed.length} failed` : ""}`);
+      qc.invalidateQueries({ queryKey: ["admin-settlements"] });
+    },
+    onError: (e: any) => toast.error(e.message || "Settlement run failed"),
+  });
+
+  const rows = data?.rows || [];
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Managed settlements</h3>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Pending payouts to PreSnag-Managed vendors. Runs automatically at 10 PM daily.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Total pending</div>
+            <div className="text-xl font-extrabold text-slate-900">{rupees(data?.totalPending || 0)}</div>
+          </div>
+          <Button
+            size="sm"
+            disabled={run.isPending || rows.length === 0}
+            onClick={() => run.mutate()}
+            title={rows.length === 0 ? "Nothing pending" : "Run settlement now"}
+          >
+            {run.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />}
+            Run settlement
+          </Button>
+        </div>
+      </div>
+
+      {rows.length > 0 && (
+        <div className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-100">
+          {rows.map((r) => (
+            <div key={r.vendorId} className="flex items-center justify-between px-4 py-2.5 text-sm">
+              <span className="font-medium text-slate-700">{r.vendorName}</span>
+              <span className="flex items-center gap-3">
+                <span className="text-xs text-slate-400">{r.orders} order{r.orders === 1 ? "" : "s"}</span>
+                <span className="font-bold text-slate-900">{rupees(r.amount)}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

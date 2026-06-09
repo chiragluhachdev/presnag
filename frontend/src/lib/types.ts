@@ -28,6 +28,18 @@ export interface Vendor {
   lat?: number;
   lng?: number;
   createdAt?: string;
+  // Settlement / payments
+  settlementMode?: "MANAGED" | "DIRECT";
+  eligibleForDirectMigration?: boolean;
+  managedPayout?: {
+    accountHolderName?: string;
+    accountNumberLast4?: string;
+    ifsc?: string;
+    panMasked?: string;
+  };
+  cashfreeBeneficiaryId?: string;
+  cashfreeVendorId?: string;
+  kycStatus?: "not_started" | "in_progress" | "active" | "rejected";
 }
 
 export interface Category {
@@ -78,10 +90,12 @@ export interface Order {
   discount: number;
   total: number;
   couponCode?: string;
-  paymentMethod: "COD" | "RAZORPAY";
+  paymentMethod: "COD" | "RAZORPAY" | "CASHFREE";
   paymentStatus: "pending" | "paid";
   status: OrderStatus;
   pickupTime?: string;
+  settlementMode?: "MANAGED" | "DIRECT";
+  settlementStatus?: "not_applicable" | "pending" | "processing" | "settled" | "failed";
   createdAt: string;
 }
 
