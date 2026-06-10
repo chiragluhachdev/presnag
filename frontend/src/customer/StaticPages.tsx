@@ -109,6 +109,11 @@ export function About() {
           We keep things lightweight on purpose: customers order straight from the browser, and
           vendors manage everything from a single, easy dashboard.
         </p>
+        <p>
+          For vendors, our pricing is simple and fair — there are <span className="font-semibold text-slate-800">no
+          monthly fees and no setup costs</span>. PreSnag charges a flat <span className="font-semibold text-slate-800">5%
+          per order</span>, so you only ever pay when you actually make a sale.
+        </p>
       </Section>
 
       <div className="mb-6 grid gap-4 sm:mb-8 sm:grid-cols-2">
@@ -203,11 +208,18 @@ export function Terms() {
         </p>
       </Section>
 
-      <Section title="3. Payments">
+      <Section title="3. Payments & fees">
         <p>
-          You may pay online or choose cash on pickup where available. During this demo phase, online
-          payments are not actually charged. Taxes are applied as required by law and shown at
-          checkout before you confirm.
+          Customers pay exactly the price of the items ordered — PreSnag does not add any booking
+          fees or surcharges to your bill. Payments are processed securely online (with cash on
+          pickup where a vendor offers it), and any applicable taxes are shown at checkout before you
+          confirm.
+        </p>
+        <p>
+          PreSnag's platform fee is charged to vendors, not customers. We have moved away from a
+          monthly subscription: vendors now pay a flat <span className="font-semibold text-slate-800">5%
+          fee per order</span>, with no monthly charge and no setup cost. The fee is deducted from the
+          vendor's settlement for each completed order.
         </p>
       </Section>
 

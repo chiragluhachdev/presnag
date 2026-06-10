@@ -13,7 +13,7 @@ const vendorSchema = new Schema(
     banner: { type: String, default: "" },
     category: {
       type: String,
-      enum: ["Tea Stall", "Café", "Bakery", "Juice Corner", "Fast Food", "Food Court"],
+      enum: ["Tea Stall", "Café", "Bakery", "Juice Corner", "Fast Food", "Food Court", "North Indian", "Multi-Cuisine", "Healthy Food"],
       default: "Fast Food",
     },
     openingHours: { type: String, default: "9:00 AM - 9:00 PM" },

@@ -41,6 +41,25 @@ const IMG = {
   hotSourSoup: "photo-1547592166-23ac45744acd",
   chinaPlatter: "photo-1569718212165-3a8278d5f624",
   chinaBanner: "photo-1552566626-52f8b828add9",
+  // khalsa
+  thali: "photo-1585937421612-70a008356fbe",
+  dalMakhani: "photo-1546833999-b9f581a1996d",
+  paneerTikka: "photo-1565557623262-b51c2513a641",
+  khalsaBanner: "photo-1517248135467-4c7edcad34c4",
+  // wonder bites
+  burger: "photo-1568901346375-23c9450c58cd",
+  pizza: "photo-1565299624946-b28f40a0ae38",
+  fries: "photo-1576107232684-1279f3908594",
+  wonderBanner: "photo-1550547660-d9450f859349",
+  // farmao
+  biryani: "photo-1563379091339-03b21ab4a4f8",
+  tandoori: "photo-1610057099443-fde8c4d50f91",
+  farmaoBanner: "photo-1514933651103-005eec06c04b",
+  // diet hub
+  salad: "photo-1512621776951-a57141f2eefd",
+  grilledChicken: "photo-1598514982205-f36b96d1e8d4",
+  smoothie: "photo-1505252585461-04db1eb84625",
+  dietBanner: "photo-1490645935967-10de6ba17061",
 };
 
 interface SeedItem {
@@ -171,6 +190,122 @@ const vendorsData: SeedVendor[] = [
       },
     ],
   },
+  {
+    name: "Khalsa Food Junction",
+    email: "khalsa@presnag.com",
+    category: "North Indian",
+    description: "Authentic Punjabi flavors, rich curries and tandoori specials.",
+    address: "NIT-5, Faridabad",
+    logo: u(IMG.thali, 200),
+    banner: u(IMG.khalsaBanner, 1200),
+    lat: 28.3840,
+    lng: 77.3100,
+    menu: [
+      {
+        name: "Main Course",
+        image: u(IMG.dalMakhani),
+        items: [
+          { name: "Dal Makhani", description: "Creamy slow-cooked black lentils", price: 180, image: u(IMG.dalMakhani) },
+          { name: "Paneer Tikka Masala", description: "Cottage cheese in rich tomato gravy", price: 240, image: u(IMG.paneerTikka) },
+        ],
+      },
+      {
+        name: "Breads & Thali",
+        image: u(IMG.thali),
+        items: [
+          { name: "Special Punjabi Thali", description: "Assorted breads, 2 curries, dal, rice & sweet", price: 300, image: u(IMG.thali) },
+          { name: "Butter Naan", description: "Soft bread from the tandoor", price: 40, image: u(IMG.samosa) },
+        ],
+      },
+    ],
+  },
+  {
+    name: "Wonder Bites",
+    email: "wonderbites@presnag.com",
+    category: "Fast Food",
+    description: "Juicy burgers, loaded pizzas, and crispy fries for your cravings.",
+    address: "Green Fields, Sector-43",
+    logo: u(IMG.burger, 200),
+    banner: u(IMG.wonderBanner, 1200),
+    lat: 28.4350,
+    lng: 77.3000,
+    menu: [
+      {
+        name: "Burgers",
+        image: u(IMG.burger),
+        items: [
+          { name: "Classic Veg Burger", description: "Crispy patty with fresh veggies & mayo", price: 90, image: u(IMG.burger) },
+          { name: "Cheese Burst Burger", description: "Double cheese layered burger", price: 130, image: u(IMG.burger) },
+        ],
+      },
+      {
+        name: "Pizzas & Fries",
+        image: u(IMG.pizza),
+        items: [
+          { name: "Farmhouse Pizza", description: "Loaded with fresh vegetables and mozzarella", price: 250, image: u(IMG.pizza) },
+          { name: "Peri Peri Fries", description: "Crispy fries tossed in spicy peri peri", price: 110, image: u(IMG.fries) },
+        ],
+      },
+    ],
+  },
+  {
+    name: "Farmao",
+    email: "farmao@presnag.com",
+    category: "Multi-Cuisine",
+    description: "Delicious multi-cuisine delicacies straight to your plate.",
+    address: "Sector-17, Faridabad",
+    logo: u(IMG.biryani, 200),
+    banner: u(IMG.farmaoBanner, 1200),
+    lat: 28.4110,
+    lng: 77.3200,
+    menu: [
+      {
+        name: "Biryani & Rice",
+        image: u(IMG.biryani),
+        items: [
+          { name: "Veg Dum Biryani", description: "Aromatic basmati rice cooked with veggies & spices", price: 220, image: u(IMG.biryani) },
+          { name: "Paneer Biryani", description: "Flavorful biryani with soft paneer cubes", price: 250, image: u(IMG.biryani) },
+        ],
+      },
+      {
+        name: "Tandoor Specials",
+        image: u(IMG.tandoori),
+        items: [
+          { name: "Tandoori Platter", description: "Assorted grilled veggies and paneer tikka", price: 350, image: u(IMG.tandoori) },
+          { name: "Malai Chaap", description: "Soya chunks marinated in rich cream", price: 200, image: u(IMG.tandoori) },
+        ],
+      },
+    ],
+  },
+  {
+    name: "DIET HUB",
+    email: "diethub@presnag.com",
+    category: "Healthy Food",
+    description: "Your daily dose of health with fresh salads, high-protein meals & juices.",
+    address: "NIT-3, Faridabad",
+    logo: u(IMG.salad, 200),
+    banner: u(IMG.dietBanner, 1200),
+    lat: 28.3900,
+    lng: 77.3050,
+    menu: [
+      {
+        name: "Fresh Salads",
+        image: u(IMG.salad),
+        items: [
+          { name: "Greek Salad", description: "Feta, olives, cucumber & tomatoes with olive oil", price: 180, image: u(IMG.salad) },
+          { name: "Sprout Salad", description: "Healthy mixed sprouts with lemon dressing", price: 150, image: u(IMG.salad) },
+        ],
+      },
+      {
+        name: "Protein & Smoothies",
+        image: u(IMG.grilledChicken),
+        items: [
+          { name: "Grilled Veggies Bowl", description: "Assorted veggies grilled to perfection", price: 200, image: u(IMG.grilledChicken) },
+          { name: "Green Detox Smoothie", description: "Spinach, apple, and celery blend", price: 140, image: u(IMG.smoothie) },
+        ],
+      },
+    ],
+  },
 ];
 
 async function seed() {
@@ -288,12 +423,16 @@ async function seed() {
     });
   }
 
-  console.log("\n[seed] done ✅  (3 shops)");
+  console.log("\n[seed] done ✅  (7 shops)");
   console.log("--------------------------------------------------");
   console.log("Admin login:   admin@presnag.com / admin123");
   console.log("Vendor logins: tadka@presnag.com / vendor123");
   console.log("               brew@presnag.com / vendor123");
   console.log("               chinahotpot@presnag.com / vendor123");
+  console.log("               khalsa@presnag.com / vendor123");
+  console.log("               wonderbites@presnag.com / vendor123");
+  console.log("               farmao@presnag.com / vendor123");
+  console.log("               diethub@presnag.com / vendor123");
   console.log("Sample coupon: WELCOME10 (10% off)");
   console.log("--------------------------------------------------");
   await mongoose.disconnect();
