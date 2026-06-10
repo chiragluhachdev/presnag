@@ -3,7 +3,7 @@ import { asyncH, HttpError } from "../middleware/error";
 import { Order } from "../models/Order";
 import { Vendor } from "../models/Vendor";
 import { env } from "../config/env";
-import { createPgOrder, verifyWebhookSignature } from "../services/cashfree";
+import { createPgOrder, getPgOrderStatus, verifyWebhookSignature } from "../services/cashfree";
 import { emitNewOrder, emitOrderStatus } from "../realtime/io";
 
 const router = Router();
@@ -41,6 +41,33 @@ router.post(
     await order.save();
 
     res.json({ paymentSessionId, orderId, demo, settlementMode: order.settlementMode });
+  })
+);
+
+/**
+ * Verify an order's payment status directly with Cashfree (used when the
+ * customer returns from checkout). Works on localhost without a public webhook.
+ * Marks the order paid + alerts the vendor if Cashfree reports it as PAID.
+ */
+router.post(
+  "/cashfree/verify",
+  asyncH(async (req, res) => {
+    const { orderNumber } = req.body;
+    const order = await Order.findOne({ orderNumber });
+    if (!order) throw new HttpError(404, "Order not found");
+
+    if (order.paymentStatus === "paid") {
+      return res.json({ paid: true });
+    }
+
+    const { paid, status } = await getPgOrderStatus(order.orderNumber);
+    if (paid) {
+      order.paymentStatus = "paid";
+      await order.save();
+      emitNewOrder(String(order.vendorId), order);
+      emitOrderStatus(String(order.vendorId), order.orderNumber, order);
+    }
+    res.json({ paid, status });
   })
 );
 

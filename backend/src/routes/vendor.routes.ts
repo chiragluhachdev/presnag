@@ -22,6 +22,11 @@ router.use(authenticate, requireRole("VENDOR"));
 
 const vid = (req: any) => req.user!.id as string;
 
+// An order only "counts" (shown to the vendor, included in stats) once it is
+// actually paid — or if it's a cash-on-pickup order. This prevents abandoned
+// online checkouts (created but never paid) from appearing or inflating revenue.
+const PAID_FILTER = { $or: [{ paymentStatus: "paid" }, { paymentMethod: "COD" }] };
+
 // ---- Stall profile ----
 router.get(
   "/me",
@@ -66,10 +71,10 @@ router.get(
     startOfDay.setHours(0, 0, 0, 0);
 
     const [todayOrders, pending, completed, allOrders] = await Promise.all([
-      Order.find({ vendorId, createdAt: { $gte: startOfDay } }),
-      Order.countDocuments({ vendorId, status: { $in: ["received", "accepted", "preparing"] } }),
-      Order.countDocuments({ vendorId, status: "collected" }),
-      Order.find({ vendorId, status: { $ne: "cancelled" } }),
+      Order.find({ vendorId, createdAt: { $gte: startOfDay }, ...PAID_FILTER }),
+      Order.countDocuments({ vendorId, status: { $in: ["received", "accepted", "preparing"] }, ...PAID_FILTER }),
+      Order.countDocuments({ vendorId, status: "collected", ...PAID_FILTER }),
+      Order.find({ vendorId, status: { $ne: "cancelled" }, ...PAID_FILTER }),
     ]);
 
     const todayRevenue = todayOrders
@@ -105,7 +110,7 @@ router.get(
   "/orders",
   asyncH(async (req, res) => {
     const { status } = req.query;
-    const filter: Record<string, unknown> = { vendorId: vid(req) };
+    const filter: Record<string, unknown> = { vendorId: vid(req), ...PAID_FILTER };
     if (status && status !== "all") filter.status = status;
     const orders = await Order.find(filter).sort({ createdAt: -1 }).limit(200);
     res.json(orders);
@@ -280,6 +285,7 @@ router.get(
       vendorId,
       status: { $ne: "cancelled" },
       createdAt: { $gte: since },
+      ...PAID_FILTER,
     });
 
     // Daily revenue buckets for last 30 days.

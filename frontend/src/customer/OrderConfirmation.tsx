@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Clock, Download, FileText, ArrowLeft, Copy, Check } from "lucide-react";
 import { api } from "@/lib/api";
 import { Order, Vendor } from "@/lib/types";
@@ -28,11 +28,21 @@ function JaggedEdgeBottom() {
 export default function OrderConfirmation() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
   const [copied, setCopied] = useState(false);
+  const qc = useQueryClient();
   const { data: order, isLoading } = useQuery({
     queryKey: ["order", orderNumber],
     queryFn: () => api<Order>(`/api/public/orders/${orderNumber}`),
     enabled: !!orderNumber,
   });
+
+  // On return from Cashfree checkout, confirm the payment with the gateway
+  // (works on localhost without a public webhook), then refresh the order.
+  useEffect(() => {
+    if (!orderNumber) return;
+    api("/api/payments/cashfree/verify", { method: "POST", body: { orderNumber } })
+      .then(() => qc.invalidateQueries({ queryKey: ["order", orderNumber] }))
+      .catch(() => {});
+  }, [orderNumber, qc]);
 
   if (isLoading)
     return (

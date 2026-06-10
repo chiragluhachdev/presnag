@@ -14,6 +14,12 @@ const router = Router();
 
 router.use(authenticate, requireRole("ADMIN", "SUPER_ADMIN"));
 
+// Only paid (or cash-on-pickup) orders count — abandoned unpaid online
+// checkouts must never appear in admin metrics or order lists.
+const PAID_FILTER = { $or: [{ paymentStatus: "paid" }, { paymentMethod: "COD" }] };
+// PreSnag's platform fee per order.
+const PLATFORM_FEE = 0.05;
+
 // ---- Platform settings (maintenance mode) ----
 router.get(
   "/settings",
@@ -50,14 +56,14 @@ router.get(
         Vendor.countDocuments({}),
         Vendor.countDocuments({ status: "active" }),
         Vendor.countDocuments({ status: "pending" }),
-        Order.countDocuments({ status: { $ne: "cancelled" } }),
-        Order.find({ createdAt: { $gte: startOfDay }, status: { $ne: "cancelled" } }),
-        Order.find({ createdAt: { $gte: startOfMonth }, status: { $ne: "cancelled" } }),
+        Order.countDocuments({ status: { $ne: "cancelled" }, ...PAID_FILTER }),
+        Order.find({ createdAt: { $gte: startOfDay }, status: { $ne: "cancelled" }, ...PAID_FILTER }),
+        Order.find({ createdAt: { $gte: startOfMonth }, status: { $ne: "cancelled" }, ...PAID_FILTER }),
       ]);
 
     const monthlyRevenue = monthOrders.reduce((s, o) => s + o.total, 0);
-    // Platform takes a 10% cut for MVP illustration.
-    const platformRevenue = Math.round(monthlyRevenue * 0.1);
+    // Platform fee: 5% per order.
+    const platformRevenue = Math.round(monthlyRevenue * PLATFORM_FEE);
 
     res.json({
       totalVendors,
@@ -179,7 +185,7 @@ router.get(
   "/orders",
   asyncH(async (req, res) => {
     const { vendorId, status, date } = req.query;
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = { ...PAID_FILTER };
     if (vendorId) filter.vendorId = vendorId;
     if (status && status !== "all") filter.status = status;
     if (date) {
@@ -205,6 +211,7 @@ router.get(
     const orders = await Order.find({
       status: { $ne: "cancelled" },
       createdAt: { $gte: since },
+      ...PAID_FILTER,
     });
 
     const daily = new Map<string, { date: string; revenue: number; orders: number }>();
@@ -231,7 +238,7 @@ router.get(
     }));
 
     const monthlyRevenue = orders.reduce((s, o) => s + o.total, 0);
-    const mrr = Math.round(monthlyRevenue * 0.1);
+    const mrr = Math.round(monthlyRevenue * PLATFORM_FEE);
 
     res.json({
       daily: [...daily.values()].sort((a, b) => a.date.localeCompare(b.date)),

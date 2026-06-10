@@ -160,6 +160,7 @@ export async function createPgOrder(args: {
   amount: number;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   returnUrl: string;
   /** For DIRECT mode: the Easy Split vendor id that should receive 100%. */
   splitVendorId?: string;
@@ -167,14 +168,17 @@ export async function createPgOrder(args: {
   if (!cashfreePgEnabled) {
     return { paymentSessionId: `demo_session_${args.orderId}`, orderId: args.orderId, demo: true };
   }
+  // Cashfree needs a clean 10-digit phone; fall back to a valid dummy in sandbox.
+  const phone = (args.customerPhone || "").replace(/\D/g, "").slice(-10) || "9999999999";
   const body: Record<string, unknown> = {
     order_id: args.orderId,
     order_amount: Number(args.amount.toFixed(2)),
     order_currency: "INR",
     customer_details: {
-      customer_id: `cust_${Date.now()}`,
-      customer_name: args.customerName,
-      customer_phone: args.customerPhone,
+      customer_id: `cust_${args.orderId}`,
+      customer_name: args.customerName || "Customer",
+      customer_phone: phone,
+      customer_email: args.customerEmail || "orders@presnag.com",
     },
     order_meta: { return_url: args.returnUrl },
   };
@@ -190,15 +194,23 @@ export async function createPgOrder(args: {
   return { paymentSessionId: data?.payment_session_id, orderId: data?.order_id || args.orderId, demo: false };
 }
 
+/** Fetch the current status of a Cashfree order (used to confirm payment on return). */
+export async function getPgOrderStatus(orderId: string): Promise<{ paid: boolean; status: string; demo: boolean }> {
+  if (!cashfreePgEnabled) return { paid: true, status: "DEMO_PAID", demo: true };
+  const data = await http(`${PG_BASE}/orders/${orderId}`, { method: "GET", headers: pgHeaders() });
+  const status = data?.order_status || "UNKNOWN";
+  return { paid: status === "PAID", status, demo: false };
+}
+
 /* ----------------------------- webhook verify ----------------------------- */
-/** Verify a Cashfree webhook signature (PG). Returns true in demo mode. */
+/** Verify a Cashfree webhook signature (PG signs with the client secret). */
 export function verifyWebhookSignature(rawBody: string, signature?: string, timestamp?: string): boolean {
-  if (!env.CASHFREE_WEBHOOK_SECRET) return true; // demo / unset
+  const secret = env.CASHFREE_WEBHOOK_SECRET || env.CASHFREE_SECRET_KEY;
+  if (!secret) return true; // demo / unset
   if (!signature || !timestamp) return false;
-  const payload = timestamp + rawBody;
   const expected = crypto
-    .createHmac("sha256", env.CASHFREE_WEBHOOK_SECRET)
-    .update(payload)
+    .createHmac("sha256", secret)
+    .update(timestamp + rawBody)
     .digest("base64");
   return expected === signature;
 }

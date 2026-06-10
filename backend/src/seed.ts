@@ -406,7 +406,6 @@ async function seed() {
       instructions: "",
     }));
     const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
-    const tax = Math.round(subtotal * 0.05);
     await Order.create({
       vendorId: firstVendor.id,
       orderNumber: genOrderNumber(),
@@ -414,12 +413,15 @@ async function seed() {
       customerPhone: "98765000" + i,
       items,
       subtotal,
-      tax,
-      total: subtotal + tax,
-      paymentMethod: i % 2 === 0 ? "COD" : "RAZORPAY",
-      paymentStatus: i < 1 ? "paid" : "pending",
+      tax: 0,
+      total: subtotal, // no extra charges — total equals the items' value
+      paymentMethod: "CASHFREE",
+      paymentStatus: "paid", // demo orders are paid (so they show in vendor/admin views)
       status: statuses[i],
       pickupTime: `${firstVendor.prepTime} min`,
+      settlementMode: "MANAGED",
+      settlementStatus: "settled",
+      settledAt: new Date(),
     });
   }
 
