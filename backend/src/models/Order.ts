@@ -27,6 +27,7 @@ const orderSchema = new Schema(
     customerName: { type: String, required: true },
     customerPhone: { type: String, required: true },
     note: { type: String, default: "" },
+    orderType: { type: String, enum: ["DINE_IN", "TAKE_AWAY"], default: "DINE_IN" },
     items: { type: [orderItemSchema], required: true },
     subtotal: { type: Number, required: true },
     tax: { type: Number, default: 0 },

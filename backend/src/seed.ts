@@ -7,7 +7,7 @@ import { MenuItem } from "./models/MenuItem";
 import { Order } from "./models/Order";
 import { Coupon } from "./models/Coupon";
 import { hashPassword } from "./utils/auth";
-import { slugify, genOrderNumber } from "./utils/helpers";
+import { slugify } from "./utils/helpers";
 
 // Helper: build an Unsplash image URL (all IDs below are verified to resolve).
 const u = (id: string, w = 600) =>
@@ -392,40 +392,9 @@ async function seed() {
     });
   }
 
-  // ---- A few sample orders for the first vendor (dashboard demo) ----
-  const firstVendor = createdVendors[0];
-  const someItems = await MenuItem.find({ vendorId: firstVendor.id }).limit(2);
-  const customers = ["Aman", "Priya", "Ravi", "Sneha"];
-  const statuses = ["received", "preparing", "ready", "collected"];
-  for (let i = 0; i < 4; i++) {
-    const items = someItems.map((it) => ({
-      itemId: it.id,
-      name: it.name,
-      price: it.price,
-      qty: 1 + (i % 2),
-      instructions: "",
-    }));
-    const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
-    await Order.create({
-      vendorId: firstVendor.id,
-      orderNumber: genOrderNumber(),
-      customerName: customers[i],
-      customerPhone: "98765000" + i,
-      items,
-      subtotal,
-      tax: 0,
-      total: subtotal, // no extra charges — total equals the items' value
-      paymentMethod: "CASHFREE",
-      paymentStatus: "paid", // demo orders are paid (so they show in vendor/admin views)
-      status: statuses[i],
-      pickupTime: `${firstVendor.prepTime} min`,
-      settlementMode: "MANAGED",
-      settlementStatus: "settled",
-      settledAt: new Date(),
-    });
-  }
+  // No sample orders — start with a clean order history.
 
-  console.log("\n[seed] done ✅  (7 shops)");
+  console.log("\n[seed] done ✅  (7 shops, 0 orders)");
   console.log("--------------------------------------------------");
   console.log("Admin login:   admin@presnag.com / admin123");
   console.log("Vendor logins: tadka@presnag.com / vendor123");

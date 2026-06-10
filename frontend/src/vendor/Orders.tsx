@@ -207,6 +207,14 @@ function OrderCard({ o, onUpdate }: { o: Order; onUpdate: (id: string, s: OrderS
                 New
               </span>
             )}
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                o.orderType === "TAKE_AWAY" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+              )}
+            >
+              {o.orderType === "TAKE_AWAY" ? "Take Away" : "Dine In"}
+            </span>
           </div>
           <div className="text-xs text-slate-400">{timeAgo(o.createdAt)}</div>
         </div>

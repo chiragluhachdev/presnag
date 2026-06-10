@@ -162,7 +162,13 @@
                       </div>
                       <div className="pt-0.5">
                         <div className={cn("text-xs font-semibold", done ? "text-slate-800" : "text-slate-400")}>{step.label}</div>
-                        {active && <div className="text-[10px] text-brand-600 font-medium">In progress…</div>}
+                        {active && (
+                          isDone ? (
+                            <div className="text-[10px] font-medium text-emerald-600">Completed ✓</div>
+                          ) : (
+                            <div className="text-[10px] font-medium text-brand-600">In progress…</div>
+                          )
+                        )}
                       </div>
                     </div>
                   );

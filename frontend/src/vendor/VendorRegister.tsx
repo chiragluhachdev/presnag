@@ -163,7 +163,7 @@ export default function VendorRegister() {
                   icon={Zap}
                   badge="Instant"
                   title="PreSnag Managed"
-                  desc="Go live today. PreSnag collects payments and settles to your bank automatically every evening."
+                  desc="Go live today. PreSnag collects payments and settles to your bank automatically within 24 hours."
                 />
                 <ModeOption
                   active={mode === "DIRECT"}

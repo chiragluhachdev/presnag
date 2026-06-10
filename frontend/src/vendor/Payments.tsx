@@ -95,7 +95,7 @@ export default function Payments() {
           icon={CheckCircle2}
           label="Last payout"
           value={data.lastPayoutAt ? new Date(data.lastPayoutAt).toLocaleDateString() : "—"}
-          sub={direct ? "Direct settlement active" : "Auto payout every evening"}
+          sub={direct ? "Direct settlement active" : "Auto payout within 24 hrs"}
         />
       </div>
 
@@ -116,7 +116,7 @@ export default function Payments() {
               <p className="mt-0.5 max-w-lg text-xs text-slate-500">
                 {direct
                   ? "Cashfree sends 100% of each order straight to your bank account in real time."
-                  : "PreSnag collects payments and settles your earnings to your bank automatically every evening."}
+                  : "PreSnag collects payments and settles your earnings to your bank automatically within 24 hours."}
               </p>
             </div>
           </div>

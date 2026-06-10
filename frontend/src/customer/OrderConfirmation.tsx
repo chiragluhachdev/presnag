@@ -176,6 +176,10 @@ Status       : ${order.paymentStatus}
                 <span className="font-bold text-brand-600 uppercase">{order.status}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">ORDER TYPE:</span>
+                <span className="font-bold text-slate-800">{order.orderType === "TAKE_AWAY" ? "Take Away" : "Dine In"}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-slate-400 font-medium">EST. PICKUP:</span>
                 <span className="font-bold text-slate-800">{order.pickupTime}</span>
               </div>

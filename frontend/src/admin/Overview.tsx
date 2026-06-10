@@ -124,7 +124,7 @@ function SettlementsPanel() {
           <div>
             <h3 className="text-sm font-bold text-slate-900">Managed settlements</h3>
             <p className="mt-0.5 text-xs text-slate-500">
-              Pending payouts to PreSnag-Managed vendors. Runs automatically at 10 PM daily.
+              Pending payouts to PreSnag-Managed vendors. Auto-settles within 24 hours.
             </p>
           </div>
         </div>

@@ -85,7 +85,7 @@ router.post(
 router.post(
   "/orders",
   asyncH(async (req, res) => {
-    const { slug, customerName, customerPhone, note, items, paymentMethod, couponCode } = req.body;
+    const { slug, customerName, customerPhone, note, orderType, items, paymentMethod, couponCode } = req.body;
     if (!slug || !customerName || !customerPhone || !Array.isArray(items) || items.length === 0) {
       throw new HttpError(400, "Missing required order fields");
     }
@@ -148,6 +148,7 @@ router.post(
       customerName,
       customerPhone,
       note: note || "",
+      orderType: orderType === "TAKE_AWAY" ? "TAKE_AWAY" : "DINE_IN",
       items: orderItems,
       subtotal,
       tax,

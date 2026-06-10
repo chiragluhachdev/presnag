@@ -84,6 +84,7 @@ export interface Order {
   customerName: string;
   customerPhone: string;
   note?: string;
+  orderType?: "DINE_IN" | "TAKE_AWAY";
   items: OrderItem[];
   subtotal: number;
   tax: number;

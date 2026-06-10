@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CreditCard, Tag, Loader2, Info, ShoppingCart, CheckCircle2, Store, Clock, ShieldCheck, User, Phone, FileText, Circle, Smartphone } from "lucide-react";
+import { CreditCard, Tag, Loader2, Info, ShoppingCart, CheckCircle2, Store, Clock, ShieldCheck, User, Phone, FileText, Circle, Smartphone, Utensils, ShoppingBag } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Order, Vendor } from "@/lib/types";
@@ -27,6 +27,7 @@ export default function Checkout() {
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
   const [method, setMethod] = useState<"COD" | "RAZORPAY">("RAZORPAY");
+  const [orderType, setOrderType] = useState<"DINE_IN" | "TAKE_AWAY">("DINE_IN");
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
   const [appliedCode, setAppliedCode] = useState("");
@@ -88,6 +89,7 @@ export default function Checkout() {
           customerName: name,
           customerPhone: phone,
           note,
+          orderType,
           paymentMethod: "CASHFREE",
           couponCode: appliedCode,
           items: cart.lines.map((l) => ({
@@ -208,6 +210,33 @@ export default function Checkout() {
                     />
                   </div>
                 </div>
+              </div>
+            </Card>
+
+            {/* Order Type */}
+            <Card className="border-slate-200/60 shadow-sm p-3 min-[375px]:p-4 md:p-5">
+              <div className="mb-2.5 flex items-center justify-between">
+                <h3 className="text-sm min-[375px]:text-base font-semibold text-slate-900">Order Type</h3>
+                <Utensils className="h-4 w-4 text-brand-500" />
+              </div>
+              <div className="flex gap-2">
+                {([
+                  { key: "DINE_IN", label: "Dine In", icon: Utensils },
+                  { key: "TAKE_AWAY", label: "Take Away", icon: ShoppingBag },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setOrderType(opt.key)}
+                    className={cn(
+                      "flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold transition",
+                      orderType === opt.key
+                        ? "border-brand-500 bg-brand-50 text-brand-600 ring-1 ring-brand-500"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                    )}
+                  >
+                    <opt.icon className="h-3.5 w-3.5" /> {opt.label}
+                  </button>
+                ))}
               </div>
             </Card>
 
