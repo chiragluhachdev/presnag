@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Clock, MapPin, Plus, Minus, ShoppingBag, ArrowLeft, Trash2, Store } from "lucide-react";
+import { Search, Clock, MapPin, Plus, Minus, ShoppingBag, ArrowLeft, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Vendor, Category, MenuItem } from "@/lib/types";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -47,38 +47,6 @@ export default function VendorPage() {
   }
 
   const { vendor, categories, items } = data;
-
-  // A closed stall's menu cannot be viewed at all.
-  if (!vendor.isOpen) {
-    return (
-      <div className="flex min-h-screen flex-col bg-slate-50">
-        <SiteHeader />
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-4 py-20 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500">
-            <Clock className="h-8 w-8" />
-          </div>
-          <div>
-            <h1 className="text-lg font-extrabold text-slate-900">{vendor.name} is currently closed</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              This stall isn't accepting orders right now. Please check back during its opening hours.
-            </p>
-            {vendor.openingHours && (
-              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                <Clock className="h-3.5 w-3.5" /> {vendor.openingHours}
-              </p>
-            )}
-          </div>
-          <Link
-            to="/shops"
-            className="mt-2 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600"
-          >
-            <Store className="h-4 w-4" /> Browse other stalls
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   const visibleItems = items.filter((i) => {
     const matchCat = activeCat === "all" || i.categoryId === activeCat;
     const matchQ = !q || i.name.toLowerCase().includes(q.toLowerCase());
