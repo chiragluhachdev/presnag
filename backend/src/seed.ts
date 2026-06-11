@@ -260,19 +260,21 @@ const vendorsData: SeedVendor[] = [
     lng: 77.3200,
     menu: [
       {
-        name: "Biryani & Rice",
-        image: u(IMG.biryani),
+        name: "Pan-Asian Delights",
+        image: u(IMG.hakkaNoodles),
         items: [
-          { name: "Veg Dum Biryani", description: "Aromatic basmati rice cooked with veggies & spices", price: 220, image: u(IMG.biryani) },
-          { name: "Paneer Biryani", description: "Flavorful biryani with soft paneer cubes", price: 250, image: u(IMG.biryani) },
+          { name: "Truffle Edamame Dumplings", description: "Hand-folded crystal dumplings infused with white truffle oil", price: 320, image: u(IMG.momos) },
+          { name: "Kung Pao Lotus Stem", description: "Crispy lotus stem tossed in a savory, sweet, and spicy Sichuan sauce", price: 290, image: u(IMG.manchurian) },
+          { name: "Wok-Tossed Soba Noodles", description: "Buckwheat noodles stir-fried with exotic Asian greens and sesame oil", price: 350, image: u(IMG.hakkaNoodles) },
         ],
       },
       {
-        name: "Tandoor Specials",
-        image: u(IMG.tandoori),
+        name: "Chef's Signature Premium",
+        image: u(IMG.thali),
         items: [
-          { name: "Tandoori Platter", description: "Assorted grilled veggies and paneer tikka", price: 350, image: u(IMG.tandoori) },
-          { name: "Malai Chaap", description: "Soya chunks marinated in rich cream", price: 200, image: u(IMG.tandoori) },
+          { name: "Saffron & Gold Leaf Biryani", description: "Our finest basmati rice with slow-cooked meat, edible gold leaf, and Iranian saffron", price: 850, image: u(IMG.biryani) },
+          { name: "Smoked Dal Makhani Fondue", description: "24-hour slow-cooked black lentils served fondue-style with garlic naan bites", price: 420, image: u(IMG.dalMakhani) },
+          { name: "Himalayan Trout Tikka", description: "Fresh river trout marinated in mustard oil and cooked in a traditional clay oven", price: 750, image: u(IMG.paneerTikka) },
         ],
       },
     ],
@@ -289,19 +291,27 @@ const vendorsData: SeedVendor[] = [
     lng: 77.3050,
     menu: [
       {
-        name: "Fresh Salads",
+        name: "Gourmet Salads",
         image: u(IMG.salad),
         items: [
-          { name: "Greek Salad", description: "Feta, olives, cucumber & tomatoes with olive oil", price: 180, image: u(IMG.salad) },
-          { name: "Sprout Salad", description: "Healthy mixed sprouts with lemon dressing", price: 150, image: u(IMG.salad) },
+          { name: "Quinoa & Avocado Salad", description: "Organic quinoa, Hass avocado, cherry tomatoes, and microgreens with lemon vinaigrette", price: 280, image: u(IMG.salad) },
+          { name: "Mediterranean Chickpea Bowl", description: "High-protein roasted chickpeas, feta, kalamata olives, and fresh parsley", price: 250, image: u(IMG.salad) },
         ],
       },
       {
-        name: "Protein & Smoothies",
+        name: "Lean Protein Bowls",
         image: u(IMG.grilledChicken),
         items: [
-          { name: "Grilled Veggies Bowl", description: "Assorted veggies grilled to perfection", price: 200, image: u(IMG.grilledChicken) },
-          { name: "Green Detox Smoothie", description: "Spinach, apple, and celery blend", price: 140, image: u(IMG.smoothie) },
+          { name: "Herb-Crusted Grilled Chicken", description: "Sous-vide chicken breast with a crust of fresh herbs, served with steamed asparagus", price: 320, image: u(IMG.grilledChicken) },
+          { name: "Teriyaki Tofu Steak", description: "Pan-seared silken tofu glazed in house-made teriyaki sauce with broccoli florets", price: 290, image: u(IMG.grilledChicken) },
+        ],
+      },
+      {
+        name: "Cold-Pressed & Smoothies",
+        image: u(IMG.smoothie),
+        items: [
+          { name: "Acai Berry Blast", description: "Antioxidant-rich acai, wild berries, and chia seeds blended with almond milk", price: 220, image: u(IMG.smoothie) },
+          { name: "Matcha Wellness Blend", description: "Ceremonial grade matcha, spinach, green apple, and agave nectar", price: 200, image: u(IMG.smoothie) },
         ],
       },
     ],
