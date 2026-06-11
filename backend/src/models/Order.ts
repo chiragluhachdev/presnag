@@ -51,6 +51,7 @@ const orderSchema = new Schema(
     },
     payoutId: { type: String, default: "" },
     settledAt: { type: Date },
+    settlementRef: { type: String, default: "" }, // UTR / txn ref for manual settlement
   },
   { timestamps: true }
 );

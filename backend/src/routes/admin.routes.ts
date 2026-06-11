@@ -5,6 +5,7 @@ import { MenuCategory } from "../models/MenuCategory";
 import { MenuItem } from "../models/MenuItem";
 import { getSettings } from "../models/Setting";
 import { runManagedSettlement } from "../jobs/dailyPayout";
+import { PLATFORM_FEE_RATE, PLATFORM_FEE_PCT, platformFee, vendorNet } from "../config/constants";
 import { authenticate, requireRole } from "../middleware/auth";
 import { asyncH, HttpError } from "../middleware/error";
 import { hashPassword } from "../utils/auth";
@@ -17,8 +18,6 @@ router.use(authenticate, requireRole("ADMIN", "SUPER_ADMIN"));
 // Only paid (or cash-on-pickup) orders count — abandoned unpaid online
 // checkouts must never appear in admin metrics or order lists.
 const PAID_FILTER = { $or: [{ paymentStatus: "paid" }, { paymentMethod: "COD" }] };
-// PreSnag's platform fee per order.
-const PLATFORM_FEE = 0.05;
 
 // ---- Platform settings (maintenance mode) ----
 router.get(
@@ -63,7 +62,7 @@ router.get(
 
     const monthlyRevenue = monthOrders.reduce((s, o) => s + o.total, 0);
     // Platform fee: 5% per order.
-    const platformRevenue = Math.round(monthlyRevenue * PLATFORM_FEE);
+    const platformRevenue = Math.round(monthlyRevenue * PLATFORM_FEE_RATE);
 
     res.json({
       totalVendors,
@@ -80,25 +79,71 @@ router.get(
 );
 
 // ---- Settlements (PreSnag-Managed vendors) ----
+// Per-vendor pending amounts with the 5% fee breakdown.
 router.get(
   "/settlements",
   asyncH(async (_req, res) => {
     const pending = await Order.aggregate([
       { $match: { settlementMode: "MANAGED", paymentStatus: "paid", settlementStatus: "pending" } },
-      { $group: { _id: "$vendorId", amount: { $sum: "$total" }, orders: { $sum: 1 } } },
+      { $group: { _id: "$vendorId", gross: { $sum: "$total" }, orders: { $sum: 1 } } },
     ]);
-    const vendors = await Vendor.find({ _id: { $in: pending.map((p) => p._id) } }).select("name");
-    const nameMap = new Map(vendors.map((v) => [v.id, v.name]));
-    const rows = pending.map((p) => ({
-      vendorId: String(p._id),
-      vendorName: nameMap.get(String(p._id)) || "Unknown",
-      amount: p.amount,
-      orders: p.orders,
-    }));
-    res.json({ rows, totalPending: rows.reduce((s, r) => s + r.amount, 0) });
+    const vendors = await Vendor.find({ _id: { $in: pending.map((p) => p._id) } }).select(
+      "name managedPayout"
+    );
+    const vMap = new Map(vendors.map((v) => [v.id, v]));
+    const rows = pending.map((p) => {
+      const v = vMap.get(String(p._id));
+      const fee = platformFee(p.gross);
+      return {
+        vendorId: String(p._id),
+        vendorName: v?.name || "Unknown",
+        bank: v?.managedPayout || null,
+        orders: p.orders,
+        gross: p.gross,
+        fee,
+        net: p.gross - fee,
+      };
+    });
+    res.json({
+      feeRatePct: PLATFORM_FEE_PCT,
+      rows,
+      totalPendingGross: rows.reduce((s, r) => s + r.gross, 0),
+      totalPendingNet: rows.reduce((s, r) => s + r.net, 0),
+    });
   })
 );
 
+// Manually mark a vendor's pending settlement as PAID (admin settles by hand,
+// then records it). Optionally stores a UTR / transaction reference.
+router.post(
+  "/settlements/:vendorId/mark-paid",
+  asyncH(async (req, res) => {
+    const { reference } = req.body;
+    const orders = await Order.find({
+      vendorId: req.params.vendorId,
+      settlementMode: "MANAGED",
+      paymentStatus: "paid",
+      settlementStatus: "pending",
+    });
+    if (orders.length === 0) throw new HttpError(400, "Nothing pending to settle for this vendor");
+
+    const gross = orders.reduce((s, o) => s + o.total, 0);
+    const net = vendorNet(gross);
+    const now = new Date();
+    await Order.updateMany(
+      { _id: { $in: orders.map((o) => o._id) } },
+      {
+        settlementStatus: "settled",
+        settledAt: now,
+        settlementRef: reference || "",
+        payoutId: reference || `manual_${now.getTime()}`,
+      }
+    );
+    res.json({ ok: true, ordersSettled: orders.length, gross, net, settledAt: now });
+  })
+);
+
+// Trigger the automated Cashfree payout (only used when Payouts is configured).
 router.post(
   "/settlements/run",
   asyncH(async (_req, res) => {
@@ -238,7 +283,7 @@ router.get(
     }));
 
     const monthlyRevenue = orders.reduce((s, o) => s + o.total, 0);
-    const mrr = Math.round(monthlyRevenue * PLATFORM_FEE);
+    const mrr = Math.round(monthlyRevenue * PLATFORM_FEE_RATE);
 
     res.json({
       daily: [...daily.values()].sort((a, b) => a.date.localeCompare(b.date)),

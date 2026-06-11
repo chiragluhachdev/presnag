@@ -48,5 +48,7 @@ export const allowedOrigins = [
 export function isAllowedOrigin(origin?: string): boolean {
   if (!origin) return true; // non-browser clients (curl, server-to-server)
   if (allowedOrigins.includes(origin)) return true;
+  // Any Vercel deployment (production + preview/branch URLs).
+  if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return true;
   return /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
 }

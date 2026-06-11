@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { Vendor } from "../models/Vendor";
 import { Order } from "../models/Order";
 import { createPayoutTransfer } from "../services/cashfree";
+import { cashfreePayoutEnabled } from "../config/env";
 
 function todayKey(): string {
   const d = new Date();
@@ -72,8 +73,14 @@ export async function runManagedSettlement(): Promise<PayoutResult[]> {
   return results;
 }
 
-/** Schedule the once-daily settlement (~10 PM server time). */
+/** Schedule the once-daily AUTOMATED settlement (~10 PM server time).
+ *  Only runs when Cashfree Payouts is configured. Otherwise settlement is
+ *  manual (admin marks each vendor paid), so we must NOT auto-settle. */
 export function scheduleDailyPayout() {
+  if (!cashfreePayoutEnabled) {
+    console.log("[payout] manual settlement mode — auto payout disabled (no Payouts keys)");
+    return;
+  }
   // minute hour day month weekday  →  22:00 every day
   cron.schedule("0 22 * * *", async () => {
     try {
@@ -84,5 +91,5 @@ export function scheduleDailyPayout() {
       console.error("[payout] daily settlement failed", err);
     }
   });
-  console.log("[payout] daily settlement scheduled for 22:00");
+  console.log("[payout] automated daily settlement scheduled for 22:00");
 }

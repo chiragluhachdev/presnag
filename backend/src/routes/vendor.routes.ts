@@ -9,6 +9,7 @@ import { authenticate, requireRole } from "../middleware/auth";
 import { asyncH, HttpError } from "../middleware/error";
 import { emitOrderStatus } from "../realtime/io";
 import { env, cashfreePgEnabled } from "../config/env";
+import { PLATFORM_FEE_PCT, platformFee, vendorNet } from "../config/constants";
 import {
   createPayoutBeneficiary,
   createEasySplitVendor,
@@ -316,8 +317,8 @@ router.get(
 );
 
 // ---- Settlement & earnings ----
-// Returns the vendor's settlement config plus today's earnings, pending
-// settlement and last-payout info (used by the dashboard Payments page).
+// Full earnings breakdown: per-order (customer paid → 5% fee → net to vendor)
+// plus a settlement summary. Used by the dashboard Payments page.
 router.get(
   "/settlement",
   asyncH(async (req, res) => {
@@ -327,14 +328,30 @@ router.get(
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    const [todayPaid, pendingAgg, lastSettled] = await Promise.all([
-      Order.find({ vendorId: vendor.id, paymentStatus: "paid", createdAt: { $gte: startOfDay } }),
-      Order.aggregate([
-        { $match: { vendorId: vendor._id, settlementMode: "MANAGED", paymentStatus: "paid", settlementStatus: "pending" } },
-        { $group: { _id: null, total: { $sum: "$total" }, count: { $sum: 1 } } },
-      ]),
-      Order.findOne({ vendorId: vendor.id, settlementStatus: "settled" }).sort({ settledAt: -1 }),
-    ]);
+    // All paid orders for this vendor (these are the ones that earn money).
+    const paidOrders = await Order.find({ vendorId: vendor.id, paymentStatus: "paid" })
+      .sort({ createdAt: -1 })
+      .limit(200);
+
+    const breakdown = paidOrders.map((o) => ({
+      orderNumber: o.orderNumber,
+      createdAt: o.createdAt,
+      customerName: o.customerName,
+      customerPaid: o.total,
+      platformFee: platformFee(o.total),
+      netAmount: vendorNet(o.total),
+      settlementStatus: o.settlementStatus === "settled" ? "Paid" : "Pending",
+      settledAt: o.settledAt || null,
+      settlementRef: o.settlementRef || "",
+    }));
+
+    const sum = (arr: typeof breakdown, key: "customerPaid" | "platformFee" | "netAmount") =>
+      arr.reduce((s, o) => s + o[key], 0);
+
+    const todays = breakdown.filter((o) => new Date(o.createdAt as any) >= startOfDay);
+    const pending = breakdown.filter((o) => o.settlementStatus === "Pending");
+    const settled = breakdown.filter((o) => o.settlementStatus === "Paid");
+    const lastSettled = settled.find((o) => o.settledAt);
 
     res.json({
       settlementMode: vendor.settlementMode,
@@ -345,11 +362,20 @@ router.get(
         vendor.settlementMode === "DIRECT"
           ? vendor.kycStatus === "active"
           : Boolean(vendor.cashfreeBeneficiaryId),
-      todayEarnings: todayPaid.reduce((s, o) => s + o.total, 0),
-      todayOrders: todayPaid.length,
-      pendingSettlement: pendingAgg[0]?.total || 0,
-      pendingOrders: pendingAgg[0]?.count || 0,
-      lastPayoutAt: lastSettled?.settledAt || null,
+      feeRatePct: PLATFORM_FEE_PCT,
+      summary: {
+        todayGross: sum(todays, "customerPaid"),
+        todayFee: sum(todays, "platformFee"),
+        todayNet: sum(todays, "netAmount"),
+        todayOrders: todays.length,
+        pendingGross: sum(pending, "customerPaid"),
+        pendingFee: sum(pending, "platformFee"),
+        pendingNet: sum(pending, "netAmount"),
+        pendingOrders: pending.length,
+        totalSettledNet: sum(settled, "netAmount"),
+        lastSettledAt: lastSettled?.settledAt || null,
+      },
+      orders: breakdown,
     });
   })
 );
