@@ -2,7 +2,7 @@ import { Router } from "express";
 import { asyncH, HttpError } from "../middleware/error";
 import { Order } from "../models/Order";
 import { Vendor } from "../models/Vendor";
-import { env } from "../config/env";
+import { env, cashfreePgEnabled } from "../config/env";
 import { createPgOrder, getPgOrderStatus, verifyWebhookSignature } from "../services/cashfree";
 import { emitNewOrder, emitOrderStatus } from "../realtime/io";
 
@@ -79,6 +79,10 @@ router.post(
 router.post(
   "/cashfree/demo-confirm",
   asyncH(async (req, res) => {
+    // SECURITY: only usable in demo mode (Cashfree not configured). When real
+    // keys are set, payment is confirmed solely via Cashfree (verify/webhook),
+    // so this endpoint can never be used to fake a payment in production.
+    if (cashfreePgEnabled) throw new HttpError(403, "Not available");
     const { orderNumber } = req.body;
     const order = await Order.findOne({ orderNumber });
     if (!order) throw new HttpError(404, "Order not found");
