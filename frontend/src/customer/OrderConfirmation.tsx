@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Clock, Download, FileText, ArrowLeft, Copy, Check } from "lucide-react";
+import { CheckCircle2, Clock, Download, FileText, ArrowLeft, Copy, Check, XCircle, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
 import { Order, Vendor } from "@/lib/types";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button, Spinner } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
+import { useCart } from "@/store/cartStore";
 import { rupees } from "@/lib/utils";
 
 function JaggedEdgeTop() {
@@ -27,7 +28,11 @@ function JaggedEdgeBottom() {
 
 export default function OrderConfirmation() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
+  const cart = useCart();
   const [copied, setCopied] = useState(false);
+  // null = still checking, true/false = verified result
+  const [paidCheck, setPaidCheck] = useState<boolean | null>(null);
+  const clearedRef = useRef(false);
   const qc = useQueryClient();
   const { data: order, isLoading } = useQuery({
     queryKey: ["order", orderNumber],
@@ -36,23 +41,78 @@ export default function OrderConfirmation() {
   });
 
   // On return from Cashfree checkout, confirm the payment with the gateway
-  // (works on localhost without a public webhook), then refresh the order.
+  // (works on localhost without a public webhook).
   useEffect(() => {
     if (!orderNumber) return;
-    api("/api/payments/cashfree/verify", { method: "POST", body: { orderNumber } })
-      .then(() => qc.invalidateQueries({ queryKey: ["order", orderNumber] }))
-      .catch(() => {});
+    api<{ paid: boolean }>("/api/payments/cashfree/verify", { method: "POST", body: { orderNumber } })
+      .then((r) => {
+        setPaidCheck(!!r.paid);
+        if (r.paid) qc.invalidateQueries({ queryKey: ["order", orderNumber] });
+      })
+      .catch(() => setPaidCheck(false));
   }, [orderNumber, qc]);
 
-  if (isLoading)
+  const paid = order?.paymentStatus === "paid" || paidCheck === true;
+
+  // Clear the cart only once payment is confirmed (so a failed payment keeps
+  // the cart intact for a retry).
+  useEffect(() => {
+    if (paid && !clearedRef.current) {
+      clearedRef.current = true;
+      cart.clear();
+    }
+  }, [paid, cart]);
+
+  const vendor = typeof order?.vendorId === "object" ? (order!.vendorId as Vendor) : null;
+
+  // Still loading the order or waiting on the payment verification.
+  if (isLoading || paidCheck === null) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Spinner className="h-8 w-8" />
+      <div className="flex min-h-screen flex-col bg-slate-50/50">
+        <SiteHeader />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4">
+          <Spinner className="h-8 w-8" />
+          <p className="text-sm text-slate-500">Confirming your payment…</p>
+        </div>
       </div>
     );
+  }
   if (!order) return <div className="py-32 text-center text-slate-500">Order not found.</div>;
 
-  const vendor = typeof order.vendorId === "object" ? (order.vendorId as Vendor) : null;
+  // Payment failed / not completed → do NOT show the order ticket.
+  if (!paid) {
+    return (
+      <div className="flex min-h-screen flex-col bg-slate-50/50">
+        <SiteHeader />
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500">
+            <XCircle className="h-9 w-9" />
+          </div>
+          <div>
+            <h1 className="text-lg font-extrabold text-slate-900">Payment not completed</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Your payment didn't go through, so this order wasn't placed. No money was charged.
+            </p>
+          </div>
+          <div className="mt-2 w-full space-y-2">
+            <Link to="/checkout" className="block">
+              <Button className="w-full" size="lg">
+                <RefreshCw className="h-4 w-4" /> Try Again
+              </Button>
+            </Link>
+            <Link to={vendor?.slug ? `/vendor/${vendor.slug}` : "/"} className="block">
+              <Button variant="outline" className="w-full">
+                {vendor?.slug ? "Back to menu" : "Back to home"}
+              </Button>
+            </Link>
+          </div>
+          <p className="text-[11px] text-slate-400">
+            Already paid? Wait a moment and refresh this page.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const suffix = order.orderNumber.startsWith("PS-") 
     ? order.orderNumber.substring(3) 

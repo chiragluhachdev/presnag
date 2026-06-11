@@ -3,7 +3,7 @@ import { useNavigate, Link, NavigateFunction } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Search, MapPin, Loader2, CupSoda, Sandwich, GlassWater, Croissant, UtensilsCrossed, Cookie,
-  Store, ClipboardList, PackageCheck, Receipt,
+  Store, ClipboardList, PackageCheck, Receipt, Info,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Vendor } from "@/lib/types";
@@ -180,6 +180,17 @@ function TrackOrderModal({ onClose, onTrack }: { onClose: () => void; onTrack: (
 /* ----------------------------------------------------------------------------
  * MOBILE LAYOUT — kept exactly as the approved mobile design.
  * -------------------------------------------------------------------------- */
+function DemoNotice({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex items-center gap-1.5 rounded-lg border border-brand-100 bg-brand-50/50 px-2.5 py-1.5 ${className}`}>
+      <Info className="h-3.5 w-3.5 shrink-0 text-brand-600" />
+      <p className="text-[11px] leading-snug text-brand-800">
+        <span className="font-semibold">Demo mode:</span> No real orders or payments are processed — feel free to explore the full flow, including checkout.
+      </p>
+    </div>
+  );
+}
+
 function MobileHome({
   navigate, q, setQ, loc, locStatus, useMyLocation, submitSearch, trackOrder, vendors, isLoading, featured, nearby,
 }: HomeView) {
@@ -307,6 +318,8 @@ function MobileHome({
                 ))}
               </Section>
             )}
+
+            <DemoNotice className="mb-3" />
 
             <Section title="Featured vendors" subtitle="Popular places to order from" seeAll vertical>
               {featured.map((v) => (
@@ -540,6 +553,8 @@ function DesktopHome({
                 ))}
               </DesktopSection>
             )}
+
+            <DemoNotice className="mb-4 w-fit" />
 
             <DesktopSection title="Featured Vendors" subtitle="Popular places to order from" seeAll>
               {featured.map((v) => (

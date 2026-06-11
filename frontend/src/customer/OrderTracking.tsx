@@ -53,6 +53,23 @@
         </div>
       );
 
+    // An unpaid online order was never completed — nothing to track.
+    if (order.paymentStatus !== "paid" && order.paymentMethod !== "COD") {
+      return (
+        <div className="min-h-screen flex flex-col bg-slate-50/50">
+          <SiteHeader />
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center">
+            <XCircle className="h-12 w-12 text-red-500" />
+            <p className="text-sm font-semibold text-slate-800">This order wasn't completed</p>
+            <p className="max-w-xs text-xs text-slate-500">
+              The payment for this order didn't go through, so there's nothing to track.
+            </p>
+            <Link to="/" className="text-xs font-semibold text-brand-600 hover:underline">Back to home</Link>
+          </div>
+        </div>
+      );
+    }
+
     const cancelled = order.status === "cancelled";
     const currentIdx = STEPS.findIndex((s) => s.key === order.status);
     const currentStep = STEPS[currentIdx];

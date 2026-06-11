@@ -107,20 +107,19 @@ export default function Checkout() {
       );
 
       // 3a. Demo mode (Cashfree not configured) — simulate a successful payment.
+      // The cart is cleared on the order page once payment is confirmed.
       if (pay.demo || pay.paymentSessionId?.startsWith("demo_")) {
         await api("/api/payments/cashfree/demo-confirm", {
           method: "POST",
           body: { orderNumber: order.orderNumber },
         });
-        cart.clear();
         navigate(`/order/${order.orderNumber}`);
         return;
       }
 
-      // 3b. Live mode — open Cashfree checkout; payment is confirmed via webhook.
+      // 3b. Live mode — open Cashfree checkout; the order page confirms the payment.
       const Cashfree = await loadCashfreeSdk();
       const cashfree = Cashfree({ mode: CASHFREE_MODE });
-      cart.clear();
       await cashfree.checkout({ paymentSessionId: pay.paymentSessionId, redirectTarget: "_self" });
       navigate(`/order/${order.orderNumber}`);
     } catch (e: any) {
