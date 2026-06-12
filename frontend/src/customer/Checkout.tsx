@@ -98,7 +98,7 @@ export default function Checkout() {
             itemId: l.itemId,
             qty: l.qty,
             instructions: l.instructions,
-            selectedOptions: l.addons.map((a) => ({ group: a.group, label: a.label })),
+            selectedOptions: (l.addons ?? []).map((a) => ({ group: a.group, label: a.label })),
           })),
         },
       });
@@ -361,8 +361,8 @@ export default function Checkout() {
                       </span>
                       <div className="pt-0.5">
                         <span className="text-slate-700">{l.name}</span>
-                        {l.addons.length > 0 && (
-                          <div className="text-[11px] text-slate-400">{l.addons.map((a) => a.label).join(", ")}</div>
+                        {(l.addons ?? []).length > 0 && (
+                          <div className="text-[11px] text-slate-400">{(l.addons ?? []).map((a) => a.label).join(", ")}</div>
                         )}
                       </div>
                     </div>

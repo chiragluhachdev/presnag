@@ -85,6 +85,19 @@ export const useCart = create<CartState>()(
       subtotal: () => get().lines.reduce((s, l) => s + l.price * l.qty, 0),
       count: () => get().lines.reduce((s, l) => s + l.qty, 0),
     }),
-    { name: "presnag_cart" }
+    {
+      name: "presnag_cart",
+      version: 1,
+      // Normalise carts saved before add-ons existed (no addons / lineKey).
+      migrate: (persisted: any) => {
+        if (!persisted) return persisted;
+        const lines = (persisted.lines || []).map((l: any) => ({
+          ...l,
+          addons: Array.isArray(l.addons) ? l.addons : [],
+          lineKey: l.lineKey || l.itemId,
+        }));
+        return { ...persisted, lines };
+      },
+    }
   )
 );

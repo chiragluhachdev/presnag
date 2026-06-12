@@ -388,8 +388,8 @@ function CartPanel({ onCheckout, isOpen }: { onCheckout: () => void; isOpen: boo
               <span className="truncate text-sm font-medium">{l.name}</span>
               <span className="shrink-0 text-sm font-semibold">{rupees(l.price * l.qty)}</span>
             </div>
-            {l.addons.length > 0 && (
-              <p className="mt-0.5 text-[11px] text-slate-400">{l.addons.map((a) => a.label).join(", ")}</p>
+            {(l.addons ?? []).length > 0 && (
+              <p className="mt-0.5 text-[11px] text-slate-400">{(l.addons ?? []).map((a) => a.label).join(", ")}</p>
             )}
             <div className="mt-2 flex items-center justify-between">
               <div className="flex items-center gap-3 rounded-lg border border-slate-200 px-2 py-1">
