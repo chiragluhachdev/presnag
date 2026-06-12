@@ -4,3 +4,4 @@ dist
 *.log
 .env.example
 .DS_Store
+seed.ts
