@@ -9,13 +9,19 @@ export const ORDER_STATUSES = [
   "cancelled",
 ] as const;
 
+const orderAddonSchema = new Schema(
+  { group: { type: String, default: "" }, label: { type: String, required: true }, price: { type: Number, default: 0 } },
+  { _id: false }
+);
+
 const orderItemSchema = new Schema(
   {
     itemId: { type: Types.ObjectId, ref: "MenuItem" },
     name: { type: String, required: true },
-    price: { type: Number, required: true },
+    price: { type: Number, required: true }, // per-unit price INCLUDING chosen add-ons
     qty: { type: Number, required: true, min: 1 },
     instructions: { type: String, default: "" },
+    addons: { type: [orderAddonSchema], default: [] },
   },
   { _id: false }
 );

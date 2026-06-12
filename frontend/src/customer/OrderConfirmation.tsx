@@ -251,7 +251,12 @@ Status       : ${order.paymentStatus}
                 <div key={i} className="flex justify-between text-xs font-mono">
                   <div className="flex items-start gap-2 max-w-[75%]">
                     <span className="text-slate-400 font-semibold">{it.qty}x</span>
-                    <span className="text-slate-700">{it.name}</span>
+                    <div>
+                      <span className="text-slate-700">{it.name}</span>
+                      {it.addons && it.addons.length > 0 && (
+                        <span className="block text-[10px] text-slate-400">+ {it.addons.map((a) => a.label).join(", ")}</span>
+                      )}
+                    </div>
                   </div>
                   <span className="font-bold text-slate-900">{rupees(it.price * it.qty)}</span>
                 </div>

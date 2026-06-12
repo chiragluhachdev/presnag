@@ -247,6 +247,9 @@ function OrderCard({ o, onUpdate }: { o: Order; onUpdate: (id: string, s: OrderS
               </span>
               <span className="shrink-0 text-slate-500">{rupees(it.price * it.qty)}</span>
             </div>
+            {it.addons && it.addons.length > 0 && (
+              <div className="mt-0.5 text-xs text-slate-500">+ {it.addons.map((a) => a.label).join(", ")}</div>
+            )}
             {it.instructions && (
               <div className="mt-0.5 flex items-center gap-1 text-xs text-amber-600">
                 <StickyNote className="h-3 w-3 shrink-0" /> {it.instructions}

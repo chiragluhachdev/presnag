@@ -54,6 +54,16 @@ export interface Category {
   sortOrder?: number;
 }
 
+export interface CustomizationOption {
+  label: string;
+  price: number;
+}
+export interface Customization {
+  name: string;
+  type: "single" | "multi";
+  required?: boolean;
+  options: CustomizationOption[];
+}
 export interface MenuItem {
   _id: string;
   vendorId: string;
@@ -63,6 +73,13 @@ export interface MenuItem {
   price: number;
   image?: string;
   isAvailable: boolean;
+  customizations?: Customization[];
+}
+
+export interface SelectedAddon {
+  group: string;
+  label: string;
+  price: number;
 }
 
 export type OrderStatus =
@@ -79,6 +96,7 @@ export interface OrderItem {
   price: number;
   qty: number;
   instructions?: string;
+  addons?: SelectedAddon[];
 }
 
 export interface Order {

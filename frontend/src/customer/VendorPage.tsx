@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Clock, MapPin, Plus, Minus, ShoppingBag, ArrowLeft, Trash2 } from "lucide-react";
+import { Search, Clock, MapPin, Plus, Minus, ShoppingBag, ArrowLeft, Trash2, SlidersHorizontal } from "lucide-react";
 import { api } from "@/lib/api";
-import { Vendor, Category, MenuItem } from "@/lib/types";
+import { Vendor, Category, MenuItem, SelectedAddon } from "@/lib/types";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button, Spinner, Badge, Textarea } from "@/components/ui";
+import { Modal } from "@/components/ui/modal";
 import { useCart } from "@/store/cartStore";
 import { rupees, cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ export default function VendorPage() {
   const [q, setQ] = useState("");
   const [activeCat, setActiveCat] = useState<string>("all");
   const [cartOpen, setCartOpen] = useState(false);
+  const [customizeItem, setCustomizeItem] = useState<MenuItem | null>(null);
 
   const cart = useCart();
 
@@ -148,7 +150,11 @@ export default function VendorPage() {
                 <p className="col-span-full py-10 text-center text-sm text-slate-400">No items found.</p>
               )}
               {visibleItems.map((item) => {
-                const line = cart.lines.find((l) => l.itemId === item._id);
+                const hasCustom = (item.customizations?.length ?? 0) > 0;
+                // For plain items the line key == itemId; for customizable items
+                // there can be several variant lines.
+                const plainLine = !hasCustom ? cart.lines.find((l) => l.lineKey === item._id) : undefined;
+                const qtyInCart = cart.lines.filter((l) => l.itemId === item._id).reduce((s, l) => s + l.qty, 0);
                 return (
                   <div
                     key={item._id}
@@ -172,13 +178,22 @@ export default function VendorPage() {
                         <span className="font-bold text-slate-900">{rupees(item.price)}</span>
                         {!item.isAvailable ? (
                           <Badge color="red">Unavailable</Badge>
-                        ) : line ? (
+                        ) : hasCustom ? (
+                          <div className="flex flex-col items-end gap-0.5">
+                            <Button size="sm" variant="subtle" onClick={() => setCustomizeItem(item)} disabled={!vendor.isOpen}>
+                              <Plus className="h-4 w-4" /> Add{qtyInCart > 0 ? ` (${qtyInCart})` : ""}
+                            </Button>
+                            <span className="flex items-center gap-0.5 text-[10px] font-medium text-brand-600">
+                              <SlidersHorizontal className="h-2.5 w-2.5" /> customisable
+                            </span>
+                          </div>
+                        ) : plainLine ? (
                           <div className="flex items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 px-2 py-1">
-                            <button onClick={() => cart.setQty(item._id, line.qty - 1)} aria-label="Decrease" disabled={!vendor.isOpen} className="disabled:opacity-50">
+                            <button onClick={() => cart.setQty(item._id, plainLine.qty - 1)} aria-label="Decrease" disabled={!vendor.isOpen} className="disabled:opacity-50">
                               <Minus className="h-4 w-4 text-brand-700" />
                             </button>
-                            <span className="w-5 text-center text-sm font-bold text-brand-700">{line.qty}</span>
-                            <button onClick={() => cart.setQty(item._id, line.qty + 1)} aria-label="Increase" disabled={!vendor.isOpen} className="disabled:opacity-50">
+                            <span className="w-5 text-center text-sm font-bold text-brand-700">{plainLine.qty}</span>
+                            <button onClick={() => cart.setQty(item._id, plainLine.qty + 1)} aria-label="Increase" disabled={!vendor.isOpen} className="disabled:opacity-50">
                               <Plus className="h-4 w-4 text-brand-700" />
                             </button>
                           </div>
@@ -220,7 +235,112 @@ export default function VendorPage() {
           </div>
         </div>
       )}
+
+      {customizeItem && (
+        <CustomizeModal
+          item={customizeItem}
+          onClose={() => setCustomizeItem(null)}
+          onAdd={(addons) => {
+            cart.add(vendor.slug, vendor.name, customizeItem, addons);
+            setCustomizeItem(null);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function CustomizeModal({
+  item, onClose, onAdd,
+}: { item: MenuItem; onClose: () => void; onAdd: (addons: SelectedAddon[]) => void }) {
+  const groups = item.customizations || [];
+  // For single-choice groups, default to the first option.
+  const [picks, setPicks] = useState<Record<string, Set<string>>>(() => {
+    const init: Record<string, Set<string>> = {};
+    groups.forEach((g) => {
+      init[g.name] = new Set(g.type === "single" && g.options[0] ? [g.options[0].label] : []);
+    });
+    return init;
+  });
+
+  function toggle(group: string, type: "single" | "multi", label: string) {
+    setPicks((p) => {
+      const next = { ...p };
+      const set = new Set(next[group]);
+      if (type === "single") {
+        next[group] = new Set([label]);
+      } else {
+        set.has(label) ? set.delete(label) : set.add(label);
+        next[group] = set;
+      }
+      return next;
+    });
+  }
+
+  const addons: SelectedAddon[] = groups.flatMap((g) =>
+    g.options
+      .filter((o) => picks[g.name]?.has(o.label))
+      .map((o) => ({ group: g.name, label: o.label, price: o.price }))
+  );
+  const total = item.price + addons.reduce((s, a) => s + a.price, 0);
+  const missingRequired = groups.some((g) => g.required && (picks[g.name]?.size ?? 0) === 0);
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={item.name}
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => onAdd(addons)} disabled={missingRequired}>
+            <Plus className="h-4 w-4" /> Add — {rupees(total)}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {item.description && <p className="text-xs text-slate-500">{item.description}</p>}
+        {groups.map((g) => (
+          <div key={g.name}>
+            <div className="mb-1.5 flex items-center gap-2">
+              <h4 className="text-sm font-bold text-slate-800">{g.name}</h4>
+              <span className="text-[10px] font-medium text-slate-400">
+                {g.required ? "Required" : g.type === "single" ? "Pick one" : "Optional"}
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {g.options.map((o) => {
+                const checked = picks[g.name]?.has(o.label) ?? false;
+                return (
+                  <button
+                    key={o.label}
+                    type="button"
+                    onClick={() => toggle(g.name, g.type, o.label)}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition",
+                      checked ? "border-brand-500 bg-brand-50/40 ring-1 ring-brand-500" : "border-slate-200 hover:border-slate-300"
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className={cn(
+                        "flex h-4 w-4 items-center justify-center border",
+                        g.type === "single" ? "rounded-full" : "rounded",
+                        checked ? "border-brand-500 bg-brand-500" : "border-slate-300"
+                      )}>
+                        {checked && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      </span>
+                      {o.label}
+                    </span>
+                    <span className="text-xs font-medium text-slate-500">{o.price > 0 ? `+ ${rupees(o.price)}` : "Free"}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Modal>
   );
 }
 
@@ -263,18 +383,21 @@ function CartPanel({ onCheckout, isOpen }: { onCheckout: () => void; isOpen: boo
       </h3>
       <div className="space-y-3">
         {cart.lines.map((l) => (
-          <div key={l.itemId} className="border-b border-slate-100 pb-3 last:border-0">
+          <div key={l.lineKey} className="border-b border-slate-100 pb-3 last:border-0">
             <div className="flex items-center justify-between gap-2">
               <span className="truncate text-sm font-medium">{l.name}</span>
               <span className="shrink-0 text-sm font-semibold">{rupees(l.price * l.qty)}</span>
             </div>
+            {l.addons.length > 0 && (
+              <p className="mt-0.5 text-[11px] text-slate-400">{l.addons.map((a) => a.label).join(", ")}</p>
+            )}
             <div className="mt-2 flex items-center justify-between">
               <div className="flex items-center gap-3 rounded-lg border border-slate-200 px-2 py-1">
-                <button onClick={() => cart.setQty(l.itemId, l.qty - 1)} disabled={!isOpen} className="disabled:opacity-50"><Minus className="h-3.5 w-3.5" /></button>
+                <button onClick={() => cart.setQty(l.lineKey, l.qty - 1)} disabled={!isOpen} className="disabled:opacity-50"><Minus className="h-3.5 w-3.5" /></button>
                 <span className="w-4 text-center text-sm font-semibold">{l.qty}</span>
-                <button onClick={() => cart.setQty(l.itemId, l.qty + 1)} disabled={!isOpen} className="disabled:opacity-50"><Plus className="h-3.5 w-3.5" /></button>
+                <button onClick={() => cart.setQty(l.lineKey, l.qty + 1)} disabled={!isOpen} className="disabled:opacity-50"><Plus className="h-3.5 w-3.5" /></button>
               </div>
-              <button onClick={() => cart.remove(l.itemId)} disabled={!isOpen} className="text-slate-400 hover:text-red-500 disabled:opacity-50">
+              <button onClick={() => cart.remove(l.lineKey)} disabled={!isOpen} className="text-slate-400 hover:text-red-500 disabled:opacity-50">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -282,7 +405,7 @@ function CartPanel({ onCheckout, isOpen }: { onCheckout: () => void; isOpen: boo
               rows={1}
               placeholder="Special instructions (optional)"
               value={l.instructions}
-              onChange={(e) => cart.setInstructions(l.itemId, e.target.value)}
+              onChange={(e) => cart.setInstructions(l.lineKey, e.target.value)}
               disabled={!isOpen}
               className="mt-2 text-xs"
             />

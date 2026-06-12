@@ -98,6 +98,7 @@ export default function Checkout() {
             itemId: l.itemId,
             qty: l.qty,
             instructions: l.instructions,
+            selectedOptions: l.addons.map((a) => ({ group: a.group, label: a.label })),
           })),
         },
       });
@@ -353,12 +354,17 @@ export default function Checkout() {
               {/* Items */}
               <div className="space-y-4 mb-6">
                 {cart.lines.map((l) => (
-                  <div key={l.itemId} className="flex items-start justify-between text-sm">
+                  <div key={l.lineKey} className="flex items-start justify-between text-sm">
                     <div className="flex items-start gap-3">
                       <span className="flex h-6 items-center justify-center rounded bg-slate-100 px-2 text-xs font-semibold text-slate-700">
                         {l.qty}x
                       </span>
-                      <span className="text-slate-700 pt-0.5">{l.name}</span>
+                      <div className="pt-0.5">
+                        <span className="text-slate-700">{l.name}</span>
+                        {l.addons.length > 0 && (
+                          <div className="text-[11px] text-slate-400">{l.addons.map((a) => a.label).join(", ")}</div>
+                        )}
+                      </div>
                     </div>
                     <span className="font-medium text-slate-900 pt-0.5">{rupees(l.price * l.qty)}</span>
                   </div>

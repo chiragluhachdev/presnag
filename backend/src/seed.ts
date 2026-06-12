@@ -60,6 +60,11 @@ const IMG = {
   grilledChicken: "photo-1598514982205-f36b96d1e8d4",
   smoothie: "photo-1505252585461-04db1eb84625",
   dietBanner: "photo-1490645935967-10de6ba17061",
+  // dailydose (premium café)
+  coldCoffee: "photo-1461023058943-07fcbe16d735",
+  frappe: "photo-1572490122747-3968b75cc699",
+  icedLatte: "photo-1517701550927-30cf4ba1dba5",
+  dailydoseBanner: "photo-1521017432531-fbd92d768814",
 };
 
 interface SeedItem {
@@ -316,6 +321,50 @@ const vendorsData: SeedVendor[] = [
       },
     ],
   },
+  {
+    name: "DailyDose",
+    email: "dailydose@presnag.com",
+    category: "Café",
+    description: "A mid-range premium café — signature cold coffees, loaded fries and wok-tossed Indo-Chinese, all freshly made.",
+    address: "Sector-15 Market, Faridabad",
+    logo: u(IMG.coldCoffee, 200),
+    banner: u(IMG.dailydoseBanner, 1200),
+    lat: 28.4011,
+    lng: 77.3120,
+    menu: [
+      {
+        name: "Cold Coffees & Shakes",
+        image: u(IMG.coldCoffee),
+        items: [
+          { name: "Classic Cold Coffee", description: "Chilled brewed coffee blended with milk & ice cream", price: 120, image: u(IMG.coldCoffee) },
+          { name: "Hazelnut Frappe", description: "Iced hazelnut frappe topped with whipped cream", price: 160, image: u(IMG.frappe) },
+          { name: "Caramel Iced Latte", description: "Double espresso over ice with caramel & cold milk", price: 150, image: u(IMG.icedLatte) },
+          { name: "Oreo Cold Coffee", description: "Cookies & cream blended cold coffee", price: 170, image: u(IMG.oreoShake) },
+        ],
+      },
+      {
+        name: "Fries & Snacks",
+        image: u(IMG.fries),
+        items: [
+          { name: "Peri Peri Fries", description: "Crispy fries tossed in spicy peri-peri seasoning", price: 110, image: u(IMG.fries) },
+          { name: "Loaded Cheese Fries", description: "Fries loaded with melted cheese & herbs", price: 150, image: u(IMG.fries) },
+          { name: "Grilled Veg Sandwich", description: "Toasted sandwich with veggies, cheese & mint chutney", price: 130, image: u(IMG.sandwich) },
+        ],
+      },
+      {
+        name: "Indo-Chinese",
+        image: u(IMG.hakkaNoodles),
+        items: [
+          { name: "Veg Hakka Noodles", description: "Wok-tossed noodles with crunchy veggies", price: 150, image: u(IMG.hakkaNoodles) },
+          { name: "Veg Fried Rice", description: "Stir-fried rice with garden vegetables", price: 140, image: u(IMG.friedRice) },
+          { name: "Chilli Potato", description: "Crispy potato tossed in tangy schezwan sauce", price: 160, image: u(IMG.manchurian) },
+          { name: "Veg Manchurian", description: "Fried veg dumplings in spicy Manchurian gravy", price: 170, image: u(IMG.manchurian) },
+          { name: "Veg Spring Rolls", description: "Crunchy rolls stuffed with stir-fried veggies", price: 120, image: u(IMG.springRolls) },
+          { name: "Veg Momos", description: "Steamed dumplings served with spicy chutney", price: 100, image: u(IMG.momos) },
+        ],
+      },
+    ],
+  },
 ];
 
 async function seed() {
@@ -406,7 +455,7 @@ async function seed() {
 
   // No sample orders — start with a clean order history.
 
-  console.log("\n[seed] done ✅  (7 shops, 0 orders)");
+  console.log("\n[seed] done ✅  (8 shops, 0 orders)");
   console.log("--------------------------------------------------");
   console.log("Admin login:   admin@presnag.com / admin123");
   console.log("Vendor logins: tadka@presnag.com / vendor123");
@@ -416,6 +465,7 @@ async function seed() {
   console.log("               wonderbites@presnag.com / vendor123");
   console.log("               farmao@presnag.com / vendor123");
   console.log("               diethub@presnag.com / vendor123");
+  console.log("               dailydose@presnag.com / vendor123");
   console.log("Sample coupon: WELCOME10 (10% off)");
   console.log("--------------------------------------------------");
   await mongoose.disconnect();

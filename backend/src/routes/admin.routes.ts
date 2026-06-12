@@ -399,13 +399,12 @@ router.get(
 
     const monthlyRevenue = orders.reduce((s, o) => s + o.total, 0);
     const mrr = Math.round(monthlyRevenue * PLATFORM_FEE_RATE);
-    const gatewayFees = Math.round(orders.reduce((s, o) => s + gatewayFee(o.total), 0));
 
     res.json({
       daily: [...daily.values()].sort((a, b) => a.date.localeCompare(b.date)),
       topVendors,
       mrr,
-      gatewayFees,
+      arr: mrr * 12,
       totalRevenue: monthlyRevenue,
       totalOrders: orders.length,
     });

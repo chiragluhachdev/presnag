@@ -112,13 +112,30 @@ router.post(
       if (!db) throw new HttpError(400, `Item not available: ${i.itemId}`);
       if (!db.isAvailable) throw new HttpError(400, `Item unavailable: ${db.name}`);
       const qty = Math.max(1, Number(i.qty) || 1);
-      subtotal += db.price * qty;
+
+      // Validate & price chosen add-ons against the item's real customizations
+      // (server-authoritative — the client can't inject arbitrary add-on prices).
+      const addons: { group: string; label: string; price: number }[] = [];
+      let addonTotal = 0;
+      const selected = Array.isArray(i.selectedOptions) ? i.selectedOptions : [];
+      for (const sel of selected) {
+        const group = (db.customizations || []).find((g: any) => g.name === sel.group);
+        const opt = group?.options.find((o: any) => o.label === sel.label);
+        if (opt) {
+          addons.push({ group: group!.name, label: opt.label, price: opt.price });
+          addonTotal += opt.price;
+        }
+      }
+
+      const unitPrice = db.price + addonTotal;
+      subtotal += unitPrice * qty;
       return {
         itemId: db.id,
         name: db.name,
-        price: db.price,
+        price: unitPrice,
         qty,
         instructions: i.instructions || "",
+        addons,
       };
     });
 
