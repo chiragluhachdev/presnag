@@ -24,7 +24,7 @@ router.get(
   "/settings",
   asyncH(async (_req, res) => {
     const settings = await getSettings();
-    res.json({ maintenanceMode: settings.maintenanceMode });
+    res.json({ maintenanceMode: settings.maintenanceMode, paymentProvider: settings.paymentProvider });
   })
 );
 
@@ -35,8 +35,11 @@ router.put(
     if (typeof req.body.maintenanceMode === "boolean") {
       settings.maintenanceMode = req.body.maintenanceMode;
     }
+    if (req.body.paymentProvider === "CASHFREE" || req.body.paymentProvider === "RAZORPAY") {
+      settings.paymentProvider = req.body.paymentProvider;
+    }
     await settings.save();
-    res.json({ maintenanceMode: settings.maintenanceMode });
+    res.json({ maintenanceMode: settings.maintenanceMode, paymentProvider: settings.paymentProvider });
   })
 );
 

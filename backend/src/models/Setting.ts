@@ -6,6 +6,8 @@ const settingSchema = new Schema(
     // A fixed key so there is only ever one settings document.
     key: { type: String, default: "platform", unique: true },
     maintenanceMode: { type: Boolean, default: false },
+    // Which payment gateway is active for customer checkout.
+    paymentProvider: { type: String, enum: ["CASHFREE", "RAZORPAY"], default: "CASHFREE" },
   },
   { timestamps: true }
 );

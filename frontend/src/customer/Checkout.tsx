@@ -9,6 +9,7 @@ import { Input, Button, Label, Textarea, Card } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { useCart } from "@/store/cartStore";
 import { loadCashfreeSdk, CASHFREE_MODE } from "@/lib/cashfree";
+import { loadRazorpaySdk } from "@/lib/razorpay";
 import { rupees, cn } from "@/lib/utils";
 
 export default function Checkout() {
@@ -100,15 +101,19 @@ export default function Checkout() {
         },
       });
 
-      // 2. Create the Cashfree payment order (routes to the vendor per their settlement mode).
-      const pay = await api<{ paymentSessionId: string; demo: boolean }>(
-        "/api/payments/cashfree/order",
-        { method: "POST", body: { orderNumber: order.orderNumber } }
-      );
+      // 2. Create the payment order with whichever gateway the admin enabled.
+      const pay = await api<{
+        provider: "CASHFREE" | "RAZORPAY";
+        demo: boolean;
+        paymentSessionId?: string;
+        razorpayOrderId?: string;
+        amount?: number;
+        currency?: string;
+        keyId?: string;
+      }>("/api/payments/order", { method: "POST", body: { orderNumber: order.orderNumber } });
 
-      // 3a. Demo mode (Cashfree not configured) — simulate a successful payment.
-      // The cart is cleared on the order page once payment is confirmed.
-      if (pay.demo || pay.paymentSessionId?.startsWith("demo_")) {
+      // Demo mode (gateway not configured) — simulate a successful payment.
+      if (pay.demo) {
         await api("/api/payments/cashfree/demo-confirm", {
           method: "POST",
           body: { orderNumber: order.orderNumber },
@@ -117,7 +122,50 @@ export default function Checkout() {
         return;
       }
 
-      // 3b. Live mode — open Cashfree checkout; the order page confirms the payment.
+      // 3. Open the right gateway's checkout.
+      if (pay.provider === "RAZORPAY") {
+        const Razorpay = await loadRazorpaySdk();
+        await new Promise<void>((resolve) => {
+          const rzp = new Razorpay({
+            key: pay.keyId,
+            order_id: pay.razorpayOrderId,
+            amount: pay.amount,
+            currency: pay.currency || "INR",
+            name: "PreSnag",
+            description: `Order ${order.orderNumber}`,
+            prefill: { name, contact: phone },
+            theme: { color: "#f97316" },
+            handler: async (resp: any) => {
+              try {
+                await api("/api/payments/verify", {
+                  method: "POST",
+                  body: {
+                    orderNumber: order.orderNumber,
+                    razorpayPaymentId: resp.razorpay_payment_id,
+                    razorpayOrderId: resp.razorpay_order_id,
+                    razorpaySignature: resp.razorpay_signature,
+                  },
+                });
+              } catch {
+                /* the order page re-verifies as a fallback */
+              }
+              navigate(`/order/${order.orderNumber}`);
+              resolve();
+            },
+            modal: {
+              ondismiss: () => {
+                // Payment cancelled — order stays unpaid; cart kept for retry.
+                navigate(`/order/${order.orderNumber}`);
+                resolve();
+              },
+            },
+          });
+          rzp.open();
+        });
+        return;
+      }
+
+      // CASHFREE — hosted redirect; the order page confirms the payment.
       const Cashfree = await loadCashfreeSdk();
       const cashfree = Cashfree({ mode: CASHFREE_MODE });
       await cashfree.checkout({ paymentSessionId: pay.paymentSessionId, redirectTarget: "_self" });

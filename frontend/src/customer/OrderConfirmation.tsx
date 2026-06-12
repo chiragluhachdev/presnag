@@ -44,7 +44,7 @@ export default function OrderConfirmation() {
   // (works on localhost without a public webhook).
   useEffect(() => {
     if (!orderNumber) return;
-    api<{ paid: boolean }>("/api/payments/cashfree/verify", { method: "POST", body: { orderNumber } })
+    api<{ paid: boolean }>("/api/payments/verify", { method: "POST", body: { orderNumber } })
       .then((r) => {
         setPaidCheck(!!r.paid);
         if (r.paid) qc.invalidateQueries({ queryKey: ["order", orderNumber] });

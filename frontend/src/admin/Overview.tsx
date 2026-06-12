@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench, Wallet, Loader2, Banknote } from "lucide-react";
+import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench, Wallet, Loader2, Banknote, CreditCard } from "lucide-react";
 import { api } from "@/lib/api";
 import { Spinner, Button, Input, Label } from "@/components/ui";
 import { Modal } from "@/components/ui/modal";
@@ -41,6 +41,8 @@ export default function Overview() {
       <PageHeader title="Platform Overview" subtitle="A snapshot of vendors, orders and revenue across PreSnag." />
 
       <MaintenanceToggle />
+
+      <PaymentGatewayCard />
 
       <SettlementsPanel />
 
@@ -224,6 +226,71 @@ function Mini({ label, value, tone }: { label: string; value: string; tone?: "ro
     <div className="rounded-lg bg-slate-50 px-2 py-2">
       <div className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{label}</div>
       <div className={cn("text-sm font-bold", tone === "rose" ? "text-rose-600" : tone === "emerald" ? "text-emerald-700" : "text-slate-800")}>{value}</div>
+    </div>
+  );
+}
+
+function PaymentGatewayCard() {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["admin-settings"],
+    queryFn: () => api<{ maintenanceMode: boolean; paymentProvider: "CASHFREE" | "RAZORPAY" }>("/api/admin/settings", { auth: true }),
+  });
+  const provider = data?.paymentProvider || "CASHFREE";
+
+  const mutation = useMutation({
+    mutationFn: (paymentProvider: "CASHFREE" | "RAZORPAY") =>
+      api<{ paymentProvider: string }>("/api/admin/settings", { method: "PUT", auth: true, body: { paymentProvider } }),
+    onSuccess: (res) => {
+      qc.setQueryData(["admin-settings"], res);
+      toast.success(`Payment gateway switched to ${res.paymentProvider}`);
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to switch gateway"),
+  });
+
+  const options = [
+    { key: "CASHFREE", label: "Cashfree", desc: "Cashfree Payments" },
+    { key: "RAZORPAY", label: "Razorpay", desc: "Razorpay Checkout" },
+  ] as const;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+          <CreditCard className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-sm font-bold text-slate-900">Payment Gateway</h3>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Choose which gateway handles customer checkout. Applies to all new orders instantly.
+          </p>
+          <div className="mt-3 grid max-w-md grid-cols-2 gap-2">
+            {options.map((o) => {
+              const active = provider === o.key;
+              return (
+                <button
+                  key={o.key}
+                  disabled={mutation.isPending || active}
+                  onClick={() => mutation.mutate(o.key)}
+                  className={cn(
+                    "rounded-xl border p-3 text-left transition",
+                    active ? "border-indigo-500 bg-indigo-50/60 ring-1 ring-indigo-500" : "border-slate-200 bg-white hover:border-slate-300"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={cn("text-sm font-bold", active ? "text-indigo-700" : "text-slate-700")}>{o.label}</span>
+                    {active && <CheckCircle2 className="h-4 w-4 text-indigo-600" />}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-slate-500">{o.desc}</div>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-[11px] text-slate-400">
+            Active: <span className="font-semibold text-slate-600">{provider}</span>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

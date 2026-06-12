@@ -36,6 +36,8 @@ const orderSchema = new Schema(
     couponCode: { type: String, default: "" },
     paymentMethod: { type: String, enum: ["COD", "RAZORPAY", "CASHFREE"], default: "CASHFREE" },
     paymentStatus: { type: String, enum: ["pending", "paid"], default: "pending" },
+    // The payment gateway's order id (Cashfree order_id is our orderNumber; Razorpay returns its own).
+    gatewayOrderId: { type: String, default: "" },
     status: { type: String, enum: ORDER_STATUSES, default: "received", index: true },
     pickupTime: { type: String, default: "" },
 

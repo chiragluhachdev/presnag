@@ -16,7 +16,7 @@ router.get(
   "/settings",
   asyncH(async (_req, res) => {
     const settings = await getSettings();
-    res.json({ maintenanceMode: settings.maintenanceMode });
+    res.json({ maintenanceMode: settings.maintenanceMode, paymentProvider: settings.paymentProvider });
   })
 );
 

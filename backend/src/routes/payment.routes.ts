@@ -2,11 +2,109 @@ import { Router } from "express";
 import { asyncH, HttpError } from "../middleware/error";
 import { Order } from "../models/Order";
 import { Vendor } from "../models/Vendor";
-import { env, cashfreePgEnabled } from "../config/env";
+import { getSettings } from "../models/Setting";
+import { env, cashfreePgEnabled, razorpayEnabled } from "../config/env";
 import { createPgOrder, getPgOrderStatus, verifyWebhookSignature } from "../services/cashfree";
+import {
+  createRazorpayOrder, verifyRazorpaySignature, getRazorpayOrderPaid, verifyRazorpayWebhook,
+} from "../services/razorpay";
 import { emitNewOrder, emitOrderStatus } from "../realtime/io";
 
 const router = Router();
+
+// Mark an order paid + notify the vendor (idempotent).
+async function confirmPaid(order: any) {
+  if (order.paymentStatus === "paid") return;
+  order.paymentStatus = "paid";
+  await order.save();
+  emitNewOrder(String(order.vendorId), order);
+  emitOrderStatus(String(order.vendorId), order.orderNumber, order);
+}
+
+/**
+ * Unified: create a payment order with whichever gateway the admin has enabled
+ * (Cashfree or Razorpay). Returns a provider-tagged response the frontend uses
+ * to open the right checkout.
+ */
+router.post(
+  "/order",
+  asyncH(async (req, res) => {
+    const { orderNumber } = req.body;
+    if (!orderNumber) throw new HttpError(400, "orderNumber is required");
+    const order = await Order.findOne({ orderNumber });
+    if (!order) throw new HttpError(404, "Order not found");
+    const vendor = await Vendor.findById(order.vendorId);
+    if (!vendor) throw new HttpError(404, "Vendor not found");
+
+    const settings = await getSettings();
+    const provider = settings.paymentProvider === "RAZORPAY" ? "RAZORPAY" : "CASHFREE";
+
+    // Both gateways collect into the PreSnag platform account (MANAGED). Cashfree
+    // DIRECT (Easy Split) only applies when the vendor migrated + is verified.
+    const direct =
+      provider === "CASHFREE" && vendor.settlementMode === "DIRECT" && vendor.kycStatus === "active";
+    order.settlementMode = direct ? "DIRECT" : "MANAGED";
+    order.settlementStatus = direct ? "not_applicable" : "pending";
+
+    if (provider === "RAZORPAY") {
+      const r = await createRazorpayOrder({ amount: order.total, receipt: order.orderNumber });
+      order.paymentMethod = "RAZORPAY";
+      order.gatewayOrderId = r.razorpayOrderId;
+      await order.save();
+      return res.json({
+        provider: "RAZORPAY",
+        razorpayOrderId: r.razorpayOrderId,
+        amount: r.amount,
+        currency: r.currency,
+        keyId: r.keyId,
+        demo: r.demo,
+        settlementMode: order.settlementMode,
+      });
+    }
+
+    const cf = await createPgOrder({
+      orderId: order.orderNumber,
+      amount: order.total,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      returnUrl: `${env.CLIENT_URL}/order/${order.orderNumber}`,
+      splitVendorId: direct ? vendor.cashfreeVendorId : undefined,
+    });
+    order.paymentMethod = "CASHFREE";
+    order.gatewayOrderId = order.orderNumber;
+    await order.save();
+    res.json({ provider: "CASHFREE", paymentSessionId: cf.paymentSessionId, demo: cf.demo, settlementMode: order.settlementMode });
+  })
+);
+
+/**
+ * Unified payment verification (works for both gateways). For Razorpay, pass the
+ * handler's signature; for Cashfree, status is fetched from the gateway.
+ */
+router.post(
+  "/verify",
+  asyncH(async (req, res) => {
+    const { orderNumber, razorpayPaymentId, razorpayOrderId, razorpaySignature } = req.body;
+    const order = await Order.findOne({ orderNumber });
+    if (!order) throw new HttpError(404, "Order not found");
+    if (order.paymentStatus === "paid") return res.json({ paid: true });
+
+    let paid = false;
+    if (order.paymentMethod === "RAZORPAY") {
+      if (razorpayPaymentId && razorpayOrderId && razorpaySignature) {
+        paid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+      }
+      if (!paid && order.gatewayOrderId) {
+        paid = (await getRazorpayOrderPaid(order.gatewayOrderId)).paid;
+      }
+    } else {
+      paid = (await getPgOrderStatus(order.orderNumber)).paid;
+    }
+
+    if (paid) await confirmPaid(order);
+    res.json({ paid });
+  })
+);
 
 /**
  * Create a Cashfree payment order for an existing PreSnag order.
@@ -82,7 +180,7 @@ router.post(
     // SECURITY: only usable in demo mode (Cashfree not configured). When real
     // keys are set, payment is confirmed solely via Cashfree (verify/webhook),
     // so this endpoint can never be used to fake a payment in production.
-    if (cashfreePgEnabled) throw new HttpError(403, "Not available");
+    if (cashfreePgEnabled || razorpayEnabled) throw new HttpError(403, "Not available");
     const { orderNumber } = req.body;
     const order = await Order.findOne({ orderNumber });
     if (!order) throw new HttpError(404, "Order not found");
@@ -146,6 +244,29 @@ router.post(
       }
     }
 
+    res.json({ ok: true });
+  })
+);
+
+/** Razorpay webhook — confirms payment if the customer closes the tab mid-flow. */
+router.post(
+  "/razorpay/webhook",
+  asyncH(async (req, res) => {
+    const raw = (req as any).rawBody || JSON.stringify(req.body);
+    const sig = req.header("x-razorpay-signature");
+    if (!verifyRazorpayWebhook(raw, sig || undefined)) {
+      throw new HttpError(401, "Invalid webhook signature");
+    }
+    const event: string = req.body?.event || "";
+    if (event === "payment.captured" || event === "order.paid") {
+      const payment = req.body?.payload?.payment?.entity;
+      const ord = req.body?.payload?.order?.entity;
+      const rzpOrderId = payment?.order_id || ord?.id;
+      if (rzpOrderId) {
+        const order = await Order.findOne({ gatewayOrderId: rzpOrderId });
+        if (order) await confirmPaid(order);
+      }
+    }
     res.json({ ok: true });
   })
 );

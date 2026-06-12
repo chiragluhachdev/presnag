@@ -13,6 +13,7 @@ export const env = {
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || "",
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || "rzp_test_placeholder",
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || "placeholder",
+  RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET || "",
 
   // ---- Cashfree (Payments / Easy Split) ----
   CASHFREE_ENV: process.env.CASHFREE_ENV || "sandbox", // "sandbox" | "production"
@@ -33,6 +34,13 @@ export const cloudinaryEnabled = Boolean(
 export const cashfreePgEnabled = Boolean(env.CASHFREE_APP_ID && env.CASHFREE_SECRET_KEY);
 export const cashfreePayoutEnabled = Boolean(
   env.CASHFREE_PAYOUT_CLIENT_ID && env.CASHFREE_PAYOUT_CLIENT_SECRET
+);
+// Razorpay is "enabled" only with real keys (not the placeholder defaults).
+export const razorpayEnabled = Boolean(
+  env.RAZORPAY_KEY_ID &&
+    env.RAZORPAY_KEY_SECRET &&
+    !env.RAZORPAY_KEY_ID.includes("placeholder") &&
+    env.RAZORPAY_KEY_SECRET !== "placeholder"
 );
 
 // Allowed browser origin (the single frontend app). Extend if you add more.
