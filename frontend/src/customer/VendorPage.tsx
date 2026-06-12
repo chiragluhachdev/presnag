@@ -158,32 +158,32 @@ export default function VendorPage() {
                 return (
                   <div
                     key={item._id}
-                    className="flex gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
                   >
                     {item.image && (
                       <img
                         src={item.image}
                         alt={item.name}
                         className={cn(
-                          "h-24 w-24 shrink-0 rounded-lg object-cover",
+                          "h-[80px] w-[80px] shrink-0 rounded-lg object-cover object-center",
                           !item.isAvailable && "grayscale"
                         )}
                       />
                     )}
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <h4 className="font-semibold text-slate-800">{item.name}</h4>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-slate-500 sm:text-sm">{item.description}</p>
+                    <div className="flex min-w-0 flex-1 flex-col justify-center">
+                      <h4 className="font-bold text-slate-800 leading-tight">{item.name}</h4>
+                      <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500 sm:text-xs">{item.description}</p>
 
-                      <div className="mt-auto flex items-center justify-between pt-2">
-                        <span className="font-bold text-slate-900">{rupees(item.price)}</span>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="font-bold text-slate-900 text-sm">{rupees(item.price)}</span>
                         {!item.isAvailable ? (
                           <Badge color="red">Unavailable</Badge>
                         ) : hasCustom ? (
                           <div className="flex flex-col items-end gap-0.5">
                             <Button size="sm" variant="subtle" onClick={() => setCustomizeItem(item)} disabled={!vendor.isOpen}>
-                              <Plus className="h-4 w-4" /> Add{qtyInCart > 0 ? ` (${qtyInCart})` : ""}
+                              <Plus className="h-3.5 w-3.5" /> Add{qtyInCart > 0 ? ` (${qtyInCart})` : ""}
                             </Button>
-                            <span className="flex items-center gap-0.5 text-[10px] font-medium text-brand-600">
+                            <span className="flex items-center gap-0.5 text-[9px] font-medium text-brand-600">
                               <SlidersHorizontal className="h-2.5 w-2.5" /> customisable
                             </span>
                           </div>
@@ -199,7 +199,7 @@ export default function VendorPage() {
                           </div>
                         ) : (
                           <Button size="sm" variant="subtle" onClick={() => cart.add(vendor.slug, vendor.name, item)} disabled={!vendor.isOpen}>
-                            <Plus className="h-4 w-4" /> Add
+                            <Plus className="h-3.5 w-3.5" /> Add
                           </Button>
                         )}
                       </div>
