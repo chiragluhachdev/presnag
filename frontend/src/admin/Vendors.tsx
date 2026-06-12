@@ -284,13 +284,18 @@ function VendorDetailModal({
               <InfoRow icon={ShieldCheck} label="KYC status" value={v.kycStatus || "not_started"} />
             </div>
           ) : (
-            <div className="space-y-1.5 text-sm">
-              <InfoRow icon={Zap} label="Mode" value="PreSnag Managed (daily payout)" />
-              <InfoRow icon={Building2} label="Account holder" value={payout?.accountHolderName || "—"} />
-              <InfoRow icon={Banknote} label="Account" value={payout?.accountNumberLast4 ? `•••• ${payout.accountNumberLast4}` : "—"} />
-              <InfoRow icon={Building2} label="IFSC" value={payout?.ifsc || "—"} />
-              <InfoRow icon={ShieldCheck} label="PAN" value={payout?.panMasked || "—"} />
-            </div>
+            <>
+              <div className="space-y-1.5 text-sm">
+                <InfoRow icon={Zap} label="Mode" value="PreSnag Managed (manual settlement)" />
+                <InfoRow icon={Building2} label="Account holder" value={payout?.accountHolderName || "—"} />
+                <InfoRow icon={Banknote} label="Account no." value={payout?.accountNumber || (payout?.accountNumberLast4 ? `•••• ${payout.accountNumberLast4}` : "—")} />
+                <InfoRow icon={Building2} label="IFSC" value={payout?.ifsc || "—"} />
+                <InfoRow icon={ShieldCheck} label="PAN" value={payout?.pan || payout?.panMasked || "—"} />
+              </div>
+              <p className="mt-2 flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+                <ShieldCheck className="h-3 w-3 shrink-0" /> Confidential — use only for vendor settlement transfers.
+              </p>
+            </>
           )}
         </div>
 

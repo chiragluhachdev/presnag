@@ -53,12 +53,16 @@ const vendorSchema = new Schema(
     },
     // Lets us show the "Switch to Direct Settlement" banner to managed vendors.
     eligibleForDirectMigration: { type: Boolean, default: true },
-    // Display-only payout details (full bank/PAN live only inside Cashfree).
+    // Payout bank details. Full account/PAN are stored so the admin can make
+    // manual settlements; masked copies are used for vendor-facing display.
+    // NEVER expose this object on public endpoints.
     managedPayout: {
       accountHolderName: { type: String, default: "" },
-      accountNumberLast4: { type: String, default: "" },
+      accountNumber: { type: String, default: "" },        // full (admin only)
+      accountNumberLast4: { type: String, default: "" },   // masked (vendor display)
       ifsc: { type: String, default: "" },
-      panMasked: { type: String, default: "" },
+      pan: { type: String, default: "" },                  // full (admin only)
+      panMasked: { type: String, default: "" },            // masked (vendor display)
     },
     // Cashfree Payouts beneficiary id (MANAGED mode).
     cashfreeBeneficiaryId: { type: String, default: "" },

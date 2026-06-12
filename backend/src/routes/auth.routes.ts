@@ -68,8 +68,10 @@ router.post(
       vendor.cashfreeBeneficiaryId = beneficiaryId;
       vendor.managedPayout = {
         accountHolderName,
+        accountNumber: String(accountNumber).replace(/\s+/g, ""),
         accountNumberLast4: last4(accountNumber),
         ifsc: String(ifsc).toUpperCase().trim(),
+        pan: String(pan).toUpperCase().trim(),
         panMasked: maskPan(pan),
       };
       await vendor.save();

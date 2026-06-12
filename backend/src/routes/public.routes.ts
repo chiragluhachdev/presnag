@@ -50,8 +50,9 @@ router.get(
 router.get(
   "/vendors/:slug",
   asyncH(async (req, res) => {
+    // Never expose payout/KYC/PII on the public storefront.
     const vendor = await Vendor.findOne({ slug: req.params.slug, status: "active" }).select(
-      "-passwordHash"
+      "-passwordHash -managedPayout -cashfreeBeneficiaryId -cashfreeVendorId -kycStatus -fssaiLicense -ownerName -email"
     );
     if (!vendor) throw new HttpError(404, "Vendor not found");
     const categories = await MenuCategory.find({ vendorId: vendor.id }).sort({ sortOrder: 1 });

@@ -183,7 +183,7 @@ export default function VendorRegister() {
                 <div><Label>PAN Number *</Label><Input value={pan} onChange={(e) => setPan(e.target.value.toUpperCase())} placeholder="ABCDE1234F" /></div>
                 <div className="flex items-start gap-2 rounded-lg bg-white p-2.5 text-[11px] text-slate-500">
                   <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                  Processed securely by Cashfree. PreSnag never stores your full account number or PAN.
+                  Your bank details are kept private and used only to settle your earnings.
                 </div>
               </div>
 

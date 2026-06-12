@@ -416,8 +416,10 @@ async function seed() {
       cashfreeBeneficiaryId: `presnag_demo_${slugify(v.name)}`,
       managedPayout: {
         accountHolderName: v.name,
+        accountNumber: `9876543210${String(i).padStart(2, "0")}`,
         accountNumberLast4: "1234",
         ifsc: "HDFC0001234",
+        pan: "ABCDE1234F",
         panMasked: "ABXXXX1F",
       },
     });

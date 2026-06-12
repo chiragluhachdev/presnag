@@ -37,8 +37,10 @@ export interface Vendor {
   eligibleForDirectMigration?: boolean;
   managedPayout?: {
     accountHolderName?: string;
+    accountNumber?: string;      // full (admin views only)
     accountNumberLast4?: string;
     ifsc?: string;
+    pan?: string;                // full (admin views only)
     panMasked?: string;
   };
   cashfreeBeneficiaryId?: string;
