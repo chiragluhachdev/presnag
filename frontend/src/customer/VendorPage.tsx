@@ -58,7 +58,7 @@ export default function VendorPage() {
   const subtotal = cart.subtotal();
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 pb-24 lg:pb-0">
+    <div className="flex min-h-screen w-full max-w-full flex-col overflow-x-hidden bg-slate-50 pb-24 lg:pb-0">
       <SiteHeader />
 
       {/* Hero banner — contained, rounded, bordered, responsive */}
@@ -79,8 +79,8 @@ export default function VendorPage() {
 
           {/* Overlaid details */}
           <div className="absolute inset-x-0 bottom-0 p-4 text-white sm:p-5 lg:p-6">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-extrabold drop-shadow-md sm:text-3xl lg:text-4xl">{vendor.name}</h1>
+            <div className="flex min-w-0 items-center gap-3">
+              <h1 className="min-w-0 break-words text-2xl font-extrabold drop-shadow-md sm:text-3xl lg:text-4xl">{vendor.name}</h1>
               <span
                 className={cn(
                   "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold",
@@ -113,10 +113,10 @@ export default function VendorPage() {
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 pt-5 md:px-10 md:pt-7">
-        <div className="grid gap-6 lg:grid-cols-[1fr_380px] lg:gap-8">
+      <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col px-4 pt-5 md:px-10 md:pt-7">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px] lg:gap-8">
           {/* Menu */}
-          <div>
+          <div className="min-w-0">
             {!vendor.isOpen && (
               <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 shadow-sm flex items-center gap-2">
                 <span className="text-base">🚫</span>
@@ -124,7 +124,7 @@ export default function VendorPage() {
               </div>
             )}
             {/* Search */}
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 shadow-sm focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
+            <div className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 shadow-sm focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100">
               <Search className="h-4 w-4 shrink-0 text-slate-400" />
               <input
                 value={q}
@@ -135,7 +135,7 @@ export default function VendorPage() {
             </div>
 
             {/* Category chips */}
-            <div className="sticky top-14 z-10 -mx-4 mt-3 flex gap-2 overflow-x-auto bg-slate-50/95 px-4 py-2 backdrop-blur [scrollbar-width:none] md:top-20 [&::-webkit-scrollbar]:hidden">
+            <div className="sticky top-14 z-10 mt-3 flex w-full gap-2 overflow-x-auto bg-slate-50/95 py-2 backdrop-blur [scrollbar-width:none] md:top-20 [&::-webkit-scrollbar]:hidden">
               <Chip active={activeCat === "all"} onClick={() => setActiveCat("all")}>All</Chip>
               {categories.map((c) => (
                 <Chip key={c._id} active={activeCat === c._id} onClick={() => setActiveCat(c._id)}>
@@ -145,7 +145,7 @@ export default function VendorPage() {
             </div>
 
             {/* Items */}
-            <div className="mt-3 grid gap-3 xl:grid-cols-2">
+            <div className="mt-3 flex flex-col gap-3 xl:grid xl:grid-cols-2">
               {visibleItems.length === 0 && (
                 <p className="col-span-full py-10 text-center text-sm text-slate-400">No items found.</p>
               )}
@@ -158,50 +158,88 @@ export default function VendorPage() {
                 return (
                   <div
                     key={item._id}
-                    className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                    onClick={() => setCustomizeItem(item)}
+                    className="flex w-full min-w-0 cursor-pointer items-center gap-2.5 overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-sm transition-colors hover:bg-slate-50/50 sm:gap-3 sm:p-3"
                   >
                     {item.image && (
                       <img
                         src={item.image}
                         alt={item.name}
                         className={cn(
-                          "h-[80px] w-[80px] shrink-0 rounded-lg object-cover object-center",
+                          "h-16 w-16 shrink-0 rounded-lg object-cover object-center sm:h-[80px] sm:w-[80px]",
                           !item.isAvailable && "grayscale"
                         )}
                       />
                     )}
                     <div className="flex min-w-0 flex-1 flex-col justify-center">
-                      <h4 className="font-bold text-slate-800 leading-tight">{item.name}</h4>
-                      <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500 sm:text-xs">{item.description}</p>
+                      <h4 className="truncate text-sm font-bold sm:text-base">{item.name}</h4>
+                      {item.description ? (
+                        <p className="line-clamp-1 text-[10px] text-slate-500 sm:text-xs">{item.description}</p>
+                      ) : null}
 
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="font-bold text-slate-900 text-sm">{rupees(item.price)}</span>
-                        {!item.isAvailable ? (
-                          <Badge color="red">Unavailable</Badge>
-                        ) : hasCustom ? (
-                          <div className="flex flex-col items-end gap-0.5">
-                            <Button size="sm" variant="subtle" onClick={() => setCustomizeItem(item)} disabled={!vendor.isOpen}>
-                              <Plus className="h-3.5 w-3.5" /> Add{qtyInCart > 0 ? ` (${qtyInCart})` : ""}
+                      <div className="mt-1 flex items-center justify-between pb-1 sm:mt-2">
+                        <span className="text-sm font-bold text-slate-900 sm:text-base leading-none">{rupees(item.price)}</span>
+                        
+                        <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                          {!item.isAvailable ? (
+                            <Badge color="red">Unavailable</Badge>
+                          ) : hasCustom ? (
+                            <Button
+                              size="sm"
+                              variant="subtle"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCustomizeItem(item);
+                              }}
+                              disabled={!vendor.isOpen}
+                              className="h-[28px] w-[64px] shrink-0 rounded-lg text-[11px] font-bold sm:h-8 sm:w-[72px] sm:text-xs"
+                            >
+                              + Add
                             </Button>
-                            <span className="flex items-center gap-0.5 text-[9px] font-medium text-brand-600">
-                              <SlidersHorizontal className="h-2.5 w-2.5" /> customisable
-                            </span>
-                          </div>
-                        ) : plainLine ? (
-                          <div className="flex items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 px-2 py-1">
-                            <button onClick={() => cart.setQty(item._id, plainLine.qty - 1)} aria-label="Decrease" disabled={!vendor.isOpen} className="disabled:opacity-50">
-                              <Minus className="h-4 w-4 text-brand-700" />
-                            </button>
-                            <span className="w-5 text-center text-sm font-bold text-brand-700">{plainLine.qty}</span>
-                            <button onClick={() => cart.setQty(item._id, plainLine.qty + 1)} aria-label="Increase" disabled={!vendor.isOpen} className="disabled:opacity-50">
-                              <Plus className="h-4 w-4 text-brand-700" />
-                            </button>
-                          </div>
-                        ) : (
-                          <Button size="sm" variant="subtle" onClick={() => cart.add(vendor.slug, vendor.name, item)} disabled={!vendor.isOpen}>
-                            <Plus className="h-3.5 w-3.5" /> Add
-                          </Button>
-                        )}
+                          ) : plainLine ? (
+                            <div
+                              className="flex h-[28px] w-[64px] items-center justify-between rounded-lg border border-brand-200 bg-brand-50 px-1.5 sm:h-8 sm:w-[72px] sm:px-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cart.setQty(item._id, plainLine.qty - 1);
+                                }}
+                                aria-label="Decrease"
+                                disabled={!vendor.isOpen}
+                                className="disabled:opacity-50"
+                              >
+                                <Minus className="h-3 w-3 text-brand-700 sm:h-3.5 sm:w-3.5" />
+                              </button>
+                              <span className="w-4 text-center text-[11px] font-bold text-brand-700 sm:w-5 sm:text-xs">{plainLine.qty}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cart.setQty(item._id, plainLine.qty + 1);
+                                }}
+                                aria-label="Increase"
+                                disabled={!vendor.isOpen}
+                                className="disabled:opacity-50"
+                              >
+                                <Plus className="h-3 w-3 text-brand-700 sm:h-3.5 sm:w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="subtle"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cart.add(vendor.slug, vendor.name, item);
+                              }}
+                              disabled={!vendor.isOpen}
+                              className="h-[28px] w-[64px] shrink-0 rounded-lg text-[11px] font-bold sm:h-8 sm:w-[72px] sm:text-xs"
+                            >
+                              + Add
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

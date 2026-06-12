@@ -28,6 +28,7 @@ export default function Vendors() {
   const [filter, setFilter] = useState("all");
   const [modal, setModal] = useState(false);
   const [detail, setDetail] = useState<Vendor | null>(null);
+  const [editModal, setEditModal] = useState<Vendor | null>(null);
 
   const { data: vendors, isLoading } = useQuery({
     queryKey: ["admin-vendors", filter],
@@ -182,6 +183,14 @@ export default function Vendors() {
           v={detail}
           onClose={() => setDetail(null)}
           onAction={async (status) => { await setStatus(detail._id, status); setDetail(null); }}
+          onEdit={() => { setEditModal(detail); setDetail(null); }}
+        />
+      )}
+      {editModal && (
+        <EditVendorModal
+          v={editModal}
+          onClose={() => setEditModal(null)}
+          onSaved={() => { setEditModal(null); refresh(); }}
         />
       )}
     </div>
@@ -205,8 +214,8 @@ function SettlementBadge({ v }: { v: Vendor }) {
 }
 
 function VendorDetailModal({
-  v, onClose, onAction,
-}: { v: Vendor; onClose: () => void; onAction: (status: string) => void }) {
+  v, onClose, onAction, onEdit
+}: { v: Vendor; onClose: () => void; onAction: (status: string) => void; onEdit: () => void }) {
   const ready = isPayoutReady(v);
   const payout = v.managedPayout;
   return (
@@ -256,6 +265,9 @@ function VendorDetailModal({
 
         {/* Admin actions */}
         <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 p-3">
+          <Button size="sm" variant="outline" onClick={onEdit}>
+            <Store className="h-4 w-4" /> Edit Details
+          </Button>
           <Button size="sm" variant="outline" onClick={async () => {
             const pwd = window.prompt(`Set a new password for ${v.name} (min 6 chars):`);
             if (!pwd) return;
@@ -365,6 +377,77 @@ function CreateVendorModal({ onClose, onSaved }: { onClose: () => void; onSaved:
               {["Tea Stall", "Café", "Bakery", "Juice Corner", "Fast Food", "Food Court"].map((c) => <option key={c}>{c}</option>)}
             </Select>
           </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function EditVendorModal({
+  v, onClose, onSaved
+}: { v: Vendor; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState(v.name);
+  const [email, setEmail] = useState(v.email || "");
+  const [phone, setPhone] = useState(v.phone || "");
+  const [category, setCategory] = useState(v.category || "Fast Food");
+  const [fssaiLicense, setFssaiLicense] = useState(v.fssaiLicense || "");
+  
+  const payout = v.managedPayout || {};
+  const [accountHolderName, setAccountHolderName] = useState(payout.accountHolderName || "");
+  const [accountNumber, setAccountNumber] = useState(payout.accountNumber || "");
+  const [ifsc, setIfsc] = useState(payout.ifsc || "");
+  const [pan, setPan] = useState(payout.pan || "");
+
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!name || !phone) return toast.error("Name and mobile required");
+    setSaving(true);
+    try {
+      const body = {
+        name, email, phone, category, fssaiLicense,
+        managedPayout: { accountHolderName, accountNumber, ifsc, pan }
+      };
+      await api(`/api/admin/vendors/${v._id}`, { method: "PUT", auth: true, body });
+      toast.success("Vendor updated");
+      onSaved();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Edit ${v.name}`}
+      footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={save} disabled={saving}>Save Changes</Button></>}
+    >
+      <div className="space-y-4 max-h-[70vh] overflow-y-auto px-1 py-1">
+        <h4 className="font-semibold text-slate-800">Basic Information</h4>
+        <div><Label>Stall Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Phone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+          <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>FSSAI License</Label><Input value={fssaiLicense} onChange={(e) => setFssaiLicense(e.target.value)} /></div>
+          <div>
+            <Label>Category</Label>
+            <Select value={category} onChange={(e) => setCategory(e.target.value)}>
+              {["Tea Stall", "Café", "Bakery", "Juice Corner", "Fast Food", "Food Court", "North Indian", "Multi-Cuisine", "Healthy Food"].map((c) => <option key={c}>{c}</option>)}
+            </Select>
+          </div>
+        </div>
+
+        <h4 className="mt-6 font-semibold text-slate-800 border-t pt-4">Bank Details (Managed Payout)</h4>
+        <div><Label>Account Holder Name</Label><Input value={accountHolderName} onChange={(e) => setAccountHolderName(e.target.value)} /></div>
+        <div><Label>Account Number</Label><Input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>IFSC Code</Label><Input value={ifsc} onChange={(e) => setIfsc(e.target.value)} /></div>
+          <div><Label>PAN Number</Label><Input value={pan} onChange={(e) => setPan(e.target.value)} /></div>
         </div>
       </div>
     </Modal>

@@ -287,10 +287,26 @@ router.patch(
 router.put(
   "/vendors/:id",
   asyncH(async (req, res) => {
-    const allowed = ["name", "email", "phone", "category", "address", "subscriptionPlan"];
-    const update: Record<string, unknown> = {};
+    const allowed = ["name", "email", "phone", "category", "address", "subscriptionPlan", "fssaiLicense"];
+    const update: Record<string, any> = {};
     for (const k of allowed) if (k in req.body) update[k] = req.body[k];
-    const vendor = await Vendor.findByIdAndUpdate(req.params.id, update, { new: true }).select(
+    
+    if (req.body.managedPayout) {
+      const p = req.body.managedPayout;
+      if (p.accountHolderName !== undefined) update["managedPayout.accountHolderName"] = p.accountHolderName;
+      if (p.ifsc !== undefined) update["managedPayout.ifsc"] = p.ifsc;
+      if (p.accountNumber !== undefined) {
+        update["managedPayout.accountNumber"] = p.accountNumber;
+        update["managedPayout.accountNumberLast4"] = String(p.accountNumber).slice(-4);
+      }
+      if (p.pan !== undefined) {
+        update["managedPayout.pan"] = p.pan;
+        const panStr = String(p.pan);
+        update["managedPayout.panMasked"] = panStr.length > 4 ? `••••${panStr.slice(-4)}` : panStr;
+      }
+    }
+
+    const vendor = await Vendor.findByIdAndUpdate(req.params.id, { $set: update }, { new: true }).select(
       "-passwordHash"
     );
     if (!vendor) throw new HttpError(404, "Not found");

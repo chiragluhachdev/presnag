@@ -32,9 +32,9 @@ export function SiteHeader() {
     <>
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-[1400px] items-center justify-between px-4 md:h-20 md:px-10">
-        <Link to="/" className="flex items-center gap-1.5 md:gap-3">
-          <img src="/PreSnaglogo.png" alt="PreSnag" className="h-9 w-9 object-contain md:h-12 md:w-12" />
-          <div className="leading-none">
+        <Link to="/" className="flex min-w-0 items-center gap-1.5 md:gap-3">
+          <img src="/PreSnaglogo.png" alt="PreSnag" className="h-9 w-9 shrink-0 object-contain md:h-12 md:w-12" />
+          <div className="leading-none min-w-0">
             <div className="text-lg font-black tracking-tight md:text-3xl">
               <span className="text-slate-900">Pre</span><span className="text-brand-500">Snag</span>
             </div>
