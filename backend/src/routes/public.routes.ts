@@ -6,7 +6,7 @@ import { Order } from "../models/Order";
 import { Coupon } from "../models/Coupon";
 import { getSettings } from "../models/Setting";
 import { asyncH, HttpError } from "../middleware/error";
-import { genOrderNumber } from "../utils/helpers";
+import { genOrderNumber, isStoreOpen } from "../utils/helpers";
 import { emitNewOrder } from "../realtime/io";
 
 const router = Router();
@@ -40,9 +40,16 @@ router.get(
     }
 
     const vendors = await Vendor.find(filter)
-      .select("name slug logo banner category isOpen prepTime address description lat lng createdAt isFeatured featuredOrder")
+      .select("name slug logo banner category isOpen openTime closeTime prepTime address description lat lng createdAt isFeatured featuredOrder")
+      .lean()
       .sort({ isFeatured: -1, featuredOrder: 1, createdAt: -1 });
-    res.json(vendors);
+
+    const mappedVendors = vendors.map((v) => ({
+      ...v,
+      isOpen: isStoreOpen(v.isOpen as boolean, v.openTime as string, v.closeTime as string),
+    }));
+
+    res.json(mappedVendors);
   })
 );
 
@@ -51,12 +58,14 @@ router.get(
   "/vendors/:slug",
   asyncH(async (req, res) => {
     // Never expose payout/KYC/PII on the public storefront.
-    const vendor = await Vendor.findOne({ slug: req.params.slug, status: "active" }).select(
-      "-passwordHash -managedPayout -cashfreeBeneficiaryId -cashfreeVendorId -kycStatus -fssaiLicense -ownerName -email"
-    );
+    const vendor = await Vendor.findOne({ slug: req.params.slug, status: "active" })
+      .select("-passwordHash -managedPayout -cashfreeBeneficiaryId -cashfreeVendorId -kycStatus -fssaiLicense -ownerName -email")
+      .lean();
     if (!vendor) throw new HttpError(404, "Vendor not found");
-    const categories = await MenuCategory.find({ vendorId: vendor.id }).sort({ sortOrder: 1 });
-    const items = await MenuItem.find({ vendorId: vendor.id });
+
+    vendor.isOpen = isStoreOpen(vendor.isOpen as boolean, vendor.openTime as string, vendor.closeTime as string);
+    const categories = await MenuCategory.find({ vendorId: vendor._id }).sort({ sortOrder: 1 });
+    const items = await MenuItem.find({ vendorId: vendor._id });
     res.json({ vendor, categories, items });
   })
 );
