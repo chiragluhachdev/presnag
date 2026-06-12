@@ -11,6 +11,7 @@ export interface AuthUser {
 export interface Vendor {
   _id: string;
   name: string;
+  ownerName?: string;
   slug: string;
   email?: string;
   phone?: string;
@@ -18,8 +19,11 @@ export interface Vendor {
   address?: string;
   logo?: string;
   banner?: string;
+  fssaiLicense?: string;
   category: string;
   openingHours?: string;
+  openTime?: string;
+  closeTime?: string;
   isOpen: boolean;
   prepTime: number;
   status: "pending" | "active" | "suspended" | "inactive";

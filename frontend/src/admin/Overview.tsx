@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench, Wallet, Loader2, Banknote, CreditCard } from "lucide-react";
+import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench, Wallet, Loader2, Banknote, CreditCard, Megaphone } from "lucide-react";
 import { api } from "@/lib/api";
-import { Spinner, Button, Input, Label } from "@/components/ui";
+import { Spinner, Button, Input, Label, Textarea } from "@/components/ui";
 import { Modal } from "@/components/ui/modal";
 import { toast } from "@/components/ui/toast";
 import { rupees, cn } from "@/lib/utils";
@@ -43,6 +43,8 @@ export default function Overview() {
       <MaintenanceToggle />
 
       <PaymentGatewayCard />
+
+      <DemoBannerCard />
 
       <SettlementsPanel />
 
@@ -97,7 +99,7 @@ export function PageHeader({ title, subtitle }: { title: string; subtitle?: stri
 }
 
 interface SettlementRow {
-  vendorId: string; vendorName: string; orders: number; gross: number; fee: number; net: number;
+  vendorId: string; vendorName: string; orders: number; gross: number; fee: number; gatewayFee: number; net: number;
   bank?: { accountHolderName?: string; accountNumberLast4?: string; ifsc?: string } | null;
 }
 
@@ -139,13 +141,14 @@ function SettlementsPanel() {
         </div>
       ) : (
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[720px] text-sm">
             <thead className="border-b border-slate-100 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400">
               <tr>
                 <th className="px-3 py-2">Vendor</th>
                 <th className="px-3 py-2 text-right">Orders</th>
                 <th className="px-3 py-2 text-right">Gross</th>
                 <th className="px-3 py-2 text-right">Fee ({fee}%)</th>
+                <th className="px-3 py-2 text-right">Gateway</th>
                 <th className="px-3 py-2 text-right">Net to Pay</th>
                 <th className="px-3 py-2 text-right">Action</th>
               </tr>
@@ -162,6 +165,7 @@ function SettlementsPanel() {
                   <td className="px-3 py-2.5 text-right text-slate-600">{r.orders}</td>
                   <td className="px-3 py-2.5 text-right text-slate-600">{rupees(r.gross)}</td>
                   <td className="px-3 py-2.5 text-right text-rose-600">− {rupees(r.fee)}</td>
+                  <td className="px-3 py-2.5 text-right text-rose-500">− {rupees(r.gatewayFee)}</td>
                   <td className="px-3 py-2.5 text-right font-bold text-emerald-700">{rupees(r.net)}</td>
                   <td className="px-3 py-2.5 text-right">
                     <Button size="sm" onClick={() => setPayFor(r)}><Banknote className="h-4 w-4" /> Mark Paid</Button>
@@ -226,6 +230,123 @@ function Mini({ label, value, tone }: { label: string; value: string; tone?: "ro
     <div className="rounded-lg bg-slate-50 px-2 py-2">
       <div className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{label}</div>
       <div className={cn("text-sm font-bold", tone === "rose" ? "text-rose-600" : tone === "emerald" ? "text-emerald-700" : "text-slate-800")}>{value}</div>
+    </div>
+  );
+}
+
+const BANNER_PRESETS = [
+  "Demo mode — no real orders or payments are processed. Feel free to explore the full flow.",
+  "Heads up — payments are live. Please explore the checkout flow only and don't place a real order.",
+  "PreSnag is in early preview. Browse around — this is a demonstration of the platform.",
+];
+
+interface DemoBannerCfg { enabled: boolean; message: string; showOnHome: boolean; showOnCheckout: boolean }
+
+function DemoBannerCard() {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["admin-settings"],
+    queryFn: () => api<{ demoBanner: DemoBannerCfg }>("/api/admin/settings", { auth: true }),
+  });
+
+  const [form, setForm] = useState<DemoBannerCfg | null>(null);
+  useEffect(() => {
+    if (data?.demoBanner && !form) setForm({ ...data.demoBanner });
+  }, [data, form]);
+
+  const save = useMutation({
+    mutationFn: (cfg: DemoBannerCfg) => api("/api/admin/settings", { method: "PUT", auth: true, body: { demoBanner: cfg } }),
+    onSuccess: (res: any) => {
+      qc.setQueryData(["admin-settings"], res);
+      qc.invalidateQueries({ queryKey: ["public-settings"] });
+      toast.success("Demo banner updated");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to save"),
+  });
+
+  const f = form;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+          <Megaphone className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Demo / Notice Banner</h3>
+              <p className="mt-0.5 text-xs text-slate-500">Show a notice on the home and/or checkout screens.</p>
+            </div>
+            {/* Enable toggle */}
+            <button
+              type="button"
+              disabled={!f}
+              onClick={() => f && setForm({ ...f, enabled: !f.enabled })}
+              className={cn("relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition disabled:opacity-50", f?.enabled ? "bg-amber-500" : "bg-slate-300")}
+              aria-pressed={f?.enabled}
+            >
+              <span className={cn("inline-block h-5 w-5 transform rounded-full bg-white shadow transition", f?.enabled ? "translate-x-6" : "translate-x-1")} />
+            </button>
+          </div>
+
+          {!f ? (
+            <div className="mt-3 text-xs text-slate-400">Loading…</div>
+          ) : (
+            <div className={cn("mt-3 space-y-3", !f.enabled && "opacity-60")}>
+              {/* Preset messages */}
+              <div>
+                <Label className="text-xs">Message preset</Label>
+                <div className="mt-1 grid gap-2">
+                  {BANNER_PRESETS.map((p, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setForm({ ...f, message: p })}
+                      className={cn(
+                        "rounded-lg border px-3 py-2 text-left text-xs transition",
+                        f.message === p ? "border-amber-400 bg-amber-50 text-amber-900 ring-1 ring-amber-300" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      )}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Editable message */}
+              <div>
+                <Label className="text-xs">Message (editable)</Label>
+                <Textarea rows={2} value={f.message} onChange={(e) => setForm({ ...f, message: e.target.value })} className="text-sm" />
+              </div>
+
+              {/* Placement */}
+              <div className="flex flex-wrap gap-4">
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={f.showOnHome} onChange={(e) => setForm({ ...f, showOnHome: e.target.checked })} className="h-4 w-4 rounded border-slate-300 accent-amber-500" />
+                  Show on Home
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={f.showOnCheckout} onChange={(e) => setForm({ ...f, showOnCheckout: e.target.checked })} className="h-4 w-4 rounded border-slate-300 accent-amber-500" />
+                  Show on Checkout
+                </label>
+              </div>
+
+              {/* Live preview */}
+              {f.enabled && f.message.trim() && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                  <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <p className="text-xs leading-snug text-amber-800">{f.message}</p>
+                </div>
+              )}
+
+              <Button size="sm" disabled={save.isPending} onClick={() => save.mutate(f)}>
+                {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Save banner
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

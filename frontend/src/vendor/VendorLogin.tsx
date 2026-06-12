@@ -13,7 +13,7 @@ const SIDE_IMG =
 export default function VendorLogin() {
   const navigate = useNavigate();
   const setAuth = useAuth((s) => s.setAuth);
-  const [email, setEmail] = useState("tadka@presnag.com");
+  const [identifier, setIdentifier] = useState("tadka@presnag.com");
   const [password, setPassword] = useState("vendor123");
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +23,7 @@ export default function VendorLogin() {
     try {
       const res = await api<{ token: string; user: AuthUser }>("/api/auth/vendor/login", {
         method: "POST",
-        body: { email, password },
+        body: { identifier, password },
       });
       setAuth(res.user, res.token);
       navigate("/vendor/dashboard");
@@ -61,8 +61,8 @@ export default function VendorLogin() {
 
           <form onSubmit={submit} className="mt-7 space-y-4">
             <div>
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Label>Email or Mobile</Label>
+              <Input value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Email or 10-digit mobile" required />
             </div>
             <div>
               <Label>Password</Label>

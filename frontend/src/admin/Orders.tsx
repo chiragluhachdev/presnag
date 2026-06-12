@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Order, Vendor } from "@/lib/types";
-import { Badge, Spinner, Input, Select } from "@/components/ui";
+import { Badge, Spinner, Input, Select, Button } from "@/components/ui";
+import { toast } from "@/components/ui/toast";
 import { rupees, timeAgo } from "@/lib/utils";
 import { PageHeader } from "./Overview";
 
@@ -12,8 +14,10 @@ const statusColor: Record<string, any> = {
 };
 
 export default function Orders() {
+  const qc = useQueryClient();
   const [status, setStatus] = useState("all");
   const [date, setDate] = useState("");
+  const [clearing, setClearing] = useState(false);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["admin-orders", status, date],
@@ -21,9 +25,29 @@ export default function Orders() {
       api<Order[]>(`/api/admin/orders?status=${status}${date ? `&date=${date}` : ""}`, { auth: true }),
   });
 
+  async function clearAll() {
+    if (!window.confirm("Clear ALL order history across every vendor? This permanently deletes all orders and cannot be undone.")) return;
+    setClearing(true);
+    try {
+      const r: any = await api("/api/admin/orders", { method: "DELETE", auth: true });
+      toast.success(`Cleared ${r.deleted} orders`);
+      qc.invalidateQueries({ queryKey: ["admin-orders"] });
+      qc.invalidateQueries({ queryKey: ["admin-overview"] });
+    } catch (e: any) {
+      toast.error(e.message || "Failed to clear");
+    } finally {
+      setClearing(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Order Monitoring" subtitle="Track every order placed across all vendors in real time." />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <PageHeader title="Order Monitoring" subtitle="Track every order placed across all vendors in real time." />
+        <Button variant="outline" size="sm" onClick={clearAll} disabled={clearing}>
+          <Trash2 className="h-4 w-4 text-red-500" /> Clear All History
+        </Button>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

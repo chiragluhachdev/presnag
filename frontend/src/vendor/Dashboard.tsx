@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { IndianRupee, ShoppingBag, Clock, CheckCircle2, TrendingUp } from "lucide-react";
+import { IndianRupee, ShoppingBag, Clock, CheckCircle2, TrendingUp, PartyPopper, ShieldCheck, Store } from "lucide-react";
 import { api } from "@/lib/api";
+import { Vendor } from "@/lib/types";
 import { Spinner } from "@/components/ui";
-import { rupees } from "@/lib/utils";
+import { rupees, cn } from "@/lib/utils";
 
 interface Stats {
   todayOrdersCount: number;
@@ -19,6 +20,10 @@ export default function Dashboard() {
     queryKey: ["vendor-stats"],
     queryFn: () => api<Stats>("/api/vendor/stats", { auth: true }),
   });
+  const { data: me } = useQuery({
+    queryKey: ["vendor-me"],
+    queryFn: () => api<Vendor>("/api/vendor/me", { auth: true }),
+  });
 
   if (isLoading || !data)
     return <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div>;
@@ -33,6 +38,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <VendorHeader title="Dashboard" subtitle="Your stall at a glance." />
+
+      {me && <ShopStatusBanner vendor={me} />}
 
       {/* Revenue highlights */}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -83,6 +90,59 @@ export default function Dashboard() {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ShopStatusBanner({ vendor }: { vendor: Vendor }) {
+  const status = vendor.status;
+  if (status === "active") {
+    return (
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+          <ShieldCheck className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 text-sm font-bold text-emerald-900">
+            Shop is Live <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Active</span>
+          </div>
+          <p className="text-xs text-emerald-700">Your shop is verified and visible to customers on PreSnag.</p>
+        </div>
+        <span className={cn(
+          "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+          vendor.isOpen ? "bg-white text-emerald-700" : "bg-white text-slate-500"
+        )}>
+          <Store className="h-3.5 w-3.5" /> {vendor.isOpen ? "Open now" : "Closed"}
+        </span>
+      </div>
+    );
+  }
+  if (status === "suspended" || status === "inactive") {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+        <Clock className="h-5 w-5 text-red-500" />
+        <p className="text-sm font-semibold text-red-800">
+          Your shop is currently {status}. Please contact PreSnag support.
+        </p>
+      </div>
+    );
+  }
+  // pending
+  return (
+    <div className="overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-5">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white">
+          <PartyPopper className="h-5 w-5" />
+        </div>
+        <div>
+          <h3 className="text-base font-extrabold text-slate-900">🎉 Congratulations, you're registered!</h3>
+          <p className="mt-1 max-w-xl text-sm text-slate-600">
+            Your shop is <span className="font-semibold text-amber-700">under review</span>. We'll verify it and
+            list it on PreSnag <span className="font-semibold">within 24 hours</span>. Meanwhile, set up your
+            menu so you're ready to take orders the moment you go live.
+          </p>
+        </div>
       </div>
     </div>
   );

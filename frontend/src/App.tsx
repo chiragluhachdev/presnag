@@ -32,6 +32,7 @@ import AdminLayout from "@/admin/AdminLayout";
 import AdminOverview from "@/admin/Overview";
 import AdminVendors from "@/admin/Vendors";
 import AdminOrders from "@/admin/Orders";
+import AdminFinance from "@/admin/Finance";
 import AdminAnalytics from "@/admin/Analytics";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -104,6 +105,7 @@ export default function App() {
         <Route path="dashboard" element={<AdminOverview />} />
         <Route path="vendors" element={<AdminVendors />} />
         <Route path="orders" element={<AdminOrders />} />
+        <Route path="finance" element={<AdminFinance />} />
         <Route path="analytics" element={<AdminAnalytics />} />
       </Route>
 

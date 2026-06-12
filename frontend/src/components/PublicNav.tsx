@@ -12,7 +12,7 @@ export function PublicFooter() {
 
           <nav className="flex items-center gap-x-4 text-slate-400 font-medium">
             <a href="/about" target="_blank" rel="noopener noreferrer" className="hover:text-brand-600 transition">About</a>
-            <a href="/partner" target="_blank" rel="noopener noreferrer" className="hover:text-brand-600 transition">For Partners</a>
+            <a href="/partner" target="_blank" rel="noopener noreferrer" className="hover:text-brand-600 transition">Partners</a>
             <a href="mailto:support@presnag.com" className="hover:text-brand-600 transition">Contact</a>
             <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-brand-600 transition">Terms</a>
             <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-brand-600 transition">Privacy</a>

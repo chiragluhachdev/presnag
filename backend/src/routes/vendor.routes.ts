@@ -6,10 +6,11 @@ import { MenuItem } from "../models/MenuItem";
 import { Order, ORDER_STATUSES } from "../models/Order";
 import { Coupon } from "../models/Coupon";
 import { authenticate, requireRole } from "../middleware/auth";
+import { hashPassword, comparePassword } from "../utils/auth";
 import { asyncH, HttpError } from "../middleware/error";
 import { emitOrderStatus } from "../realtime/io";
 import { env, cashfreePgEnabled } from "../config/env";
-import { PLATFORM_FEE_PCT, platformFee, vendorNet } from "../config/constants";
+import { PLATFORM_FEE_PCT, platformFee, gatewayFee, vendorNet } from "../config/constants";
 import {
   createPayoutBeneficiary,
   createEasySplitVendor,
@@ -43,16 +44,19 @@ router.put(
   asyncH(async (req, res) => {
     const allowed = [
       "name",
-      "phone",
+      "ownerName",
       "description",
       "address",
       "logo",
       "banner",
       "category",
       "openingHours",
+      "openTime",
+      "closeTime",
       "isOpen",
       "socialLinks",
       "prepTime",
+      "fssaiLicense",
     ];
     const update: Record<string, unknown> = {};
     for (const k of allowed) if (k in req.body) update[k] = req.body[k];
@@ -60,6 +64,33 @@ router.put(
       "-passwordHash"
     );
     res.json(vendor);
+  })
+);
+
+// Change own password (must supply the current password).
+router.post(
+  "/change-password",
+  asyncH(async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) throw new HttpError(400, "Current and new password required");
+    if (String(newPassword).length < 6) throw new HttpError(400, "New password must be at least 6 characters");
+    const vendor = await Vendor.findById(vid(req));
+    if (!vendor) throw new HttpError(404, "Not found");
+    if (!(await comparePassword(currentPassword, vendor.passwordHash))) {
+      throw new HttpError(401, "Current password is incorrect");
+    }
+    vendor.passwordHash = await hashPassword(newPassword);
+    await vendor.save();
+    res.json({ ok: true });
+  })
+);
+
+// Clear this vendor's entire order history (irreversible).
+router.delete(
+  "/orders",
+  asyncH(async (req, res) => {
+    const result = await Order.deleteMany({ vendorId: vid(req) });
+    res.json({ ok: true, deleted: result.deletedCount });
   })
 );
 
@@ -339,6 +370,7 @@ router.get(
       customerName: o.customerName,
       customerPaid: o.total,
       platformFee: platformFee(o.total),
+      gatewayFee: gatewayFee(o.total),
       netAmount: vendorNet(o.total),
       settlementStatus: o.settlementStatus === "settled" ? "Paid" : "Pending",
       settledAt: o.settledAt || null,
@@ -425,7 +457,7 @@ router.post(
     const { cashfreeVendorId, onboardingUrl } = await createEasySplitVendor({
       vendorId: vendor.id,
       name: vendor.name,
-      email: vendor.email,
+      email: vendor.email || "",
       phone: vendor.phone || "",
     });
     vendor.cashfreeVendorId = cashfreeVendorId;

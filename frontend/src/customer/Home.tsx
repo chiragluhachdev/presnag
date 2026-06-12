@@ -8,6 +8,7 @@ import {
 import { api } from "@/lib/api";
 import { Vendor } from "@/lib/types";
 import { PublicFooter } from "@/components/PublicNav";
+import { DemoBanner } from "@/components/DemoBanner";
 import { VendorCard } from "@/components/VendorCard";
 import { Spinner, Button, Label } from "@/components/ui";
 import { Modal } from "@/components/ui/modal";
@@ -321,6 +322,8 @@ function MobileHome({
 
             <DemoNotice className="mb-3" />
 
+            <DemoBanner placement="home" className="mb-3" />
+
             <Section title="Featured vendors" subtitle="Popular places to order from" seeAll vertical>
               {featured.map((v) => (
                 <VendorCard key={v._id} v={v} horizontal />
@@ -555,6 +558,8 @@ function DesktopHome({
             )}
 
             <DemoNotice className="mb-4 w-fit" />
+
+            <DemoBanner placement="home" className="mb-4 w-fit" />
 
             <DesktopSection title="Featured Vendors" subtitle="Popular places to order from" seeAll>
               {featured.map((v) => (

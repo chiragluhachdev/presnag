@@ -8,6 +8,16 @@ const settingSchema = new Schema(
     maintenanceMode: { type: Boolean, default: false },
     // Which payment gateway is active for customer checkout.
     paymentProvider: { type: String, enum: ["CASHFREE", "RAZORPAY"], default: "CASHFREE" },
+    // Admin-controlled demo/notice banner.
+    demoBanner: {
+      enabled: { type: Boolean, default: false },
+      message: {
+        type: String,
+        default: "Heads up — payments are live. Please explore the checkout flow only and don't place a real order.",
+      },
+      showOnHome: { type: Boolean, default: true },
+      showOnCheckout: { type: Boolean, default: true },
+    },
   },
   { timestamps: true }
 );

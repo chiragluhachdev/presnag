@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar,
 } from "recharts";
-import { IndianRupee, ShoppingBag, Repeat, CalendarRange } from "lucide-react";
+import { IndianRupee, ShoppingBag, Repeat, CreditCard } from "lucide-react";
 import { api } from "@/lib/api";
 import { Spinner } from "@/components/ui";
 import { rupees } from "@/lib/utils";
@@ -12,7 +12,7 @@ interface Analytics {
   daily: { date: string; revenue: number; orders: number }[];
   topVendors: { name: string; revenue: number }[];
   mrr: number;
-  arr: number;
+  gatewayFees: number;
   totalRevenue: number;
   totalOrders: number;
 }
@@ -31,7 +31,7 @@ export default function Analytics() {
     { label: "Revenue (30d)", value: rupees(data.totalRevenue), icon: IndianRupee, color: "text-emerald-600", bg: "bg-emerald-50" },
     { label: "Orders (30d)", value: data.totalOrders, icon: ShoppingBag, color: "text-purple-600", bg: "bg-purple-50" },
     { label: "MRR", value: rupees(data.mrr), icon: Repeat, color: "text-brand-600", bg: "bg-brand-50" },
-    { label: "ARR", value: rupees(data.arr), icon: CalendarRange, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Gateway Fees", value: rupees(data.gatewayFees), icon: CreditCard, color: "text-rose-600", bg: "bg-rose-50" },
   ];
 
   return (

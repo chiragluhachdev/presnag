@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate, Link } from "react-router-dom";
-import { LayoutDashboard, Store, ClipboardList, BarChart3, LogOut, ExternalLink } from "lucide-react";
+import { LayoutDashboard, Store, ClipboardList, BarChart3, LogOut, ExternalLink, Wallet } from "lucide-react";
 import { useAuth } from "@/store/authStore";
 import { cn } from "@/lib/utils";
 
@@ -7,6 +7,7 @@ const NAV = [
   { to: "/admin/dashboard", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/admin/vendors", label: "Vendors", icon: Store },
   { to: "/admin/orders", label: "Orders", icon: ClipboardList },
+  { to: "/admin/finance", label: "Finance", icon: Wallet },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
 ];
 

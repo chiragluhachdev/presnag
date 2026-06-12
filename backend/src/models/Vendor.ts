@@ -2,21 +2,26 @@ import { Schema, model, InferSchemaType } from "mongoose";
 
 const vendorSchema = new Schema(
   {
-    name: { type: String, required: true },
+    name: { type: String, required: true }, // shop name
+    ownerName: { type: String, default: "" },
     slug: { type: String, required: true, unique: true, index: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
+    // Email is optional; phone is the primary (required, unique) login id.
+    email: { type: String, lowercase: true, trim: true },
+    phone: { type: String, required: true, unique: true, trim: true },
     passwordHash: { type: String, required: true },
-    phone: { type: String, default: "" },
     description: { type: String, default: "" },
     address: { type: String, default: "" },
     logo: { type: String, default: "" },
     banner: { type: String, default: "" },
+    fssaiLicense: { type: String, default: "" },
     category: {
       type: String,
       enum: ["Tea Stall", "Café", "Bakery", "Juice Corner", "Fast Food", "Food Court", "North Indian", "Multi-Cuisine", "Healthy Food"],
       default: "Fast Food",
     },
     openingHours: { type: String, default: "9:00 AM - 9:00 PM" },
+    openTime: { type: String, default: "09:00" },
+    closeTime: { type: String, default: "21:00" },
     isOpen: { type: Boolean, default: true },
     rating: { type: Number, default: 4.5 },
     prepTime: { type: Number, default: 15 }, // minutes
@@ -71,6 +76,9 @@ const vendorSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Email is unique only when present (optional field).
+vendorSchema.index({ email: 1 }, { unique: true, sparse: true });
 
 export type VendorDoc = InferSchemaType<typeof vendorSchema>;
 export const Vendor = model("Vendor", vendorSchema);

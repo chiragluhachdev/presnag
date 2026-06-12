@@ -3,9 +3,10 @@ import { Vendor } from "../models/Vendor";
 import { Order } from "../models/Order";
 import { MenuCategory } from "../models/MenuCategory";
 import { MenuItem } from "../models/MenuItem";
+import { Coupon } from "../models/Coupon";
 import { getSettings } from "../models/Setting";
 import { runManagedSettlement } from "../jobs/dailyPayout";
-import { PLATFORM_FEE_RATE, PLATFORM_FEE_PCT, platformFee, vendorNet } from "../config/constants";
+import { PLATFORM_FEE_RATE, PLATFORM_FEE_PCT, GATEWAY_FEE_RATE, platformFee, gatewayFee, vendorNet } from "../config/constants";
 import { authenticate, requireRole } from "../middleware/auth";
 import { asyncH, HttpError } from "../middleware/error";
 import { hashPassword } from "../utils/auth";
@@ -20,11 +21,18 @@ router.use(authenticate, requireRole("ADMIN", "SUPER_ADMIN"));
 const PAID_FILTER = { $or: [{ paymentStatus: "paid" }, { paymentMethod: "COD" }] };
 
 // ---- Platform settings (maintenance mode) ----
+function settingsPayload(s: any) {
+  return {
+    maintenanceMode: s.maintenanceMode,
+    paymentProvider: s.paymentProvider,
+    demoBanner: s.demoBanner,
+  };
+}
+
 router.get(
   "/settings",
   asyncH(async (_req, res) => {
-    const settings = await getSettings();
-    res.json({ maintenanceMode: settings.maintenanceMode, paymentProvider: settings.paymentProvider });
+    res.json(settingsPayload(await getSettings()));
   })
 );
 
@@ -38,8 +46,18 @@ router.put(
     if (req.body.paymentProvider === "CASHFREE" || req.body.paymentProvider === "RAZORPAY") {
       settings.paymentProvider = req.body.paymentProvider;
     }
+    const d = req.body.demoBanner;
+    if (d && typeof d === "object") {
+      const cur: any = settings.demoBanner || {};
+      settings.demoBanner = {
+        enabled: typeof d.enabled === "boolean" ? d.enabled : cur.enabled ?? false,
+        message: typeof d.message === "string" ? d.message : cur.message ?? "",
+        showOnHome: typeof d.showOnHome === "boolean" ? d.showOnHome : cur.showOnHome ?? true,
+        showOnCheckout: typeof d.showOnCheckout === "boolean" ? d.showOnCheckout : cur.showOnCheckout ?? true,
+      };
+    }
     await settings.save();
-    res.json({ maintenanceMode: settings.maintenanceMode, paymentProvider: settings.paymentProvider });
+    res.json(settingsPayload(settings));
   })
 );
 
@@ -81,6 +99,63 @@ router.get(
   })
 );
 
+// ---- Finance: full per-order money breakdown + daily totals ----
+router.get(
+  "/finance",
+  asyncH(async (req, res) => {
+    const { date } = req.query;
+    const day = date ? new Date(String(date)) : new Date();
+    const start = new Date(day); start.setHours(0, 0, 0, 0);
+    const end = new Date(start); end.setDate(end.getDate() + 1);
+
+    const orders = await Order.find({
+      paymentStatus: "paid",
+      createdAt: { $gte: start, $lt: end },
+    })
+      .populate("vendorId", "name")
+      .sort({ createdAt: -1 })
+      .limit(500);
+
+    const rows = orders.map((o) => {
+      const gFee = gatewayFee(o.total);
+      const pFee = platformFee(o.total);
+      const vendor: any = o.vendorId;
+      return {
+        orderNumber: o.orderNumber,
+        vendorName: vendor?.name || "—",
+        createdAt: o.createdAt,
+        customerPaid: o.total,
+        gatewayFee: gFee,
+        platformFee: pFee,
+        vendorGets: vendorNet(o.total),
+        status: o.settlementStatus === "settled" ? "Paid" : "Pending",
+      };
+    });
+
+    const sum = (k: "customerPaid" | "gatewayFee" | "platformFee" | "vendorGets") =>
+      Math.round(rows.reduce((s, r) => s + r[k], 0) * 100) / 100;
+    const collection = sum("customerPaid");
+    const gatewayFees = sum("gatewayFee");
+    const platformCommission = sum("platformFee");
+    const vendorPayoutDue = sum("vendorGets");
+
+    res.json({
+      date: start.toISOString().slice(0, 10),
+      feeRatePct: PLATFORM_FEE_PCT,
+      gatewayRatePct: Math.round(GATEWAY_FEE_RATE * 10000) / 100,
+      rows,
+      totals: {
+        collection,
+        gatewayFees,
+        platformCommission,
+        vendorPayoutDue,
+        netProfit: platformCommission, // gateway fee is borne by the vendor
+        orders: rows.length,
+      },
+    });
+  })
+);
+
 // ---- Settlements (PreSnag-Managed vendors) ----
 // Per-vendor pending amounts with the 5% fee breakdown.
 router.get(
@@ -96,15 +171,15 @@ router.get(
     const vMap = new Map(vendors.map((v) => [v.id, v]));
     const rows = pending.map((p) => {
       const v = vMap.get(String(p._id));
-      const fee = platformFee(p.gross);
       return {
         vendorId: String(p._id),
         vendorName: v?.name || "Unknown",
         bank: v?.managedPayout || null,
         orders: p.orders,
         gross: p.gross,
-        fee,
-        net: p.gross - fee,
+        fee: platformFee(p.gross),
+        gatewayFee: gatewayFee(p.gross),
+        net: vendorNet(p.gross),
       };
     });
     res.json({
@@ -170,15 +245,21 @@ router.get(
 router.post(
   "/vendors",
   asyncH(async (req, res) => {
-    const { name, email, password, phone, category } = req.body;
-    if (!name || !email || !password) throw new HttpError(400, "Name, email, password required");
+    const { name, ownerName, email, password, phone, category } = req.body;
+    if (!name || !password || !phone) throw new HttpError(400, "Name, mobile and password required");
+    const cleanPhone = String(phone).replace(/\D/g, "").slice(-10);
+    if (cleanPhone.length !== 10) throw new HttpError(400, "Enter a valid 10-digit mobile number");
+    if (await Vendor.exists({ phone: cleanPhone })) throw new HttpError(409, "Mobile already registered");
+    const lowerEmail = email ? String(email).toLowerCase().trim() : undefined;
+    if (lowerEmail && (await Vendor.exists({ email: lowerEmail }))) throw new HttpError(409, "Email already registered");
     let slug = slugify(name);
     if (await Vendor.exists({ slug })) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
     const vendor = await Vendor.create({
       name,
-      email: String(email).toLowerCase(),
+      ownerName: ownerName || "",
+      ...(lowerEmail ? { email: lowerEmail } : {}),
       passwordHash: await hashPassword(password),
-      phone,
+      phone: cleanPhone,
       category,
       slug,
       status: "active",
@@ -186,6 +267,20 @@ router.post(
     const obj = vendor.toObject() as Record<string, unknown>;
     delete obj.passwordHash;
     res.status(201).json(obj);
+  })
+);
+
+// Admin resets a vendor's password.
+router.patch(
+  "/vendors/:id/password",
+  asyncH(async (req, res) => {
+    const { password } = req.body;
+    if (!password || String(password).length < 6) throw new HttpError(400, "Password must be at least 6 characters");
+    const vendor = await Vendor.findById(req.params.id);
+    if (!vendor) throw new HttpError(404, "Not found");
+    vendor.passwordHash = await hashPassword(password);
+    await vendor.save();
+    res.json({ ok: true });
   })
 );
 
@@ -218,13 +313,30 @@ router.patch(
   })
 );
 
+// Delete a vendor AND everything linked to it (orders, menu, coupons).
 router.delete(
   "/vendors/:id",
   asyncH(async (req, res) => {
-    await Vendor.deleteOne({ _id: req.params.id });
-    await MenuItem.deleteMany({ vendorId: req.params.id });
-    await MenuCategory.deleteMany({ vendorId: req.params.id });
+    const id = req.params.id;
+    await Promise.all([
+      Vendor.deleteOne({ _id: id }),
+      MenuItem.deleteMany({ vendorId: id }),
+      MenuCategory.deleteMany({ vendorId: id }),
+      Order.deleteMany({ vendorId: id }),
+      Coupon.deleteMany({ vendorId: id }),
+    ]);
     res.json({ ok: true });
+  })
+);
+
+// Clear order history — all orders, or a single vendor's (?vendorId=...).
+router.delete(
+  "/orders",
+  asyncH(async (req, res) => {
+    const { vendorId } = req.query;
+    const filter = vendorId ? { vendorId: String(vendorId) } : {};
+    const result = await Order.deleteMany(filter);
+    res.json({ ok: true, deleted: result.deletedCount });
   })
 );
 
@@ -287,12 +399,13 @@ router.get(
 
     const monthlyRevenue = orders.reduce((s, o) => s + o.total, 0);
     const mrr = Math.round(monthlyRevenue * PLATFORM_FEE_RATE);
+    const gatewayFees = Math.round(orders.reduce((s, o) => s + gatewayFee(o.total), 0));
 
     res.json({
       daily: [...daily.values()].sort((a, b) => a.date.localeCompare(b.date)),
       topVendors,
       mrr,
-      arr: mrr * 12,
+      gatewayFees,
       totalRevenue: monthlyRevenue,
       totalOrders: orders.length,
     });

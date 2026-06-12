@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CreditCard, Tag, Loader2, Info, ShoppingCart, CheckCircle2, Store, Clock, ShieldCheck, User, Phone, FileText, Circle, Smartphone, Utensils, ShoppingBag } from "lucide-react";
+import { CreditCard, Tag, Loader2, ShoppingCart, CheckCircle2, Store, Clock, ShieldCheck, User, Phone, FileText, Circle, Smartphone, Utensils, ShoppingBag } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Order, Vendor } from "@/lib/types";
@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Input, Button, Label, Textarea, Card } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { useCart } from "@/store/cartStore";
+import { DemoBanner } from "@/components/DemoBanner";
 import { loadCashfreeSdk, CASHFREE_MODE } from "@/lib/cashfree";
 import { loadRazorpaySdk } from "@/lib/razorpay";
 import { rupees, cn } from "@/lib/utils";
@@ -199,15 +200,8 @@ export default function Checkout() {
           </div>
         </div>
 
-        {/* Live-demo notice */}
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-          <div className="text-xs leading-snug text-amber-800">
-            <span className="font-semibold">Heads up — payments are live.</span> PreSnag is still in
-            preview, so please explore the checkout flow only and <span className="font-semibold">don't place a real order</span>.
-            Any payment made here is real.
-          </div>
-        </div>
+        {/* Admin-controlled notice banner */}
+        <DemoBanner placement="checkout" className="mb-4" />
 
         <div className="grid gap-4 md:grid-cols-12 md:gap-8">
 

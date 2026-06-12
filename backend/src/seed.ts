@@ -343,13 +343,15 @@ async function seed() {
   const BASE_LNG = 75.8577;
   const createdVendors = [];
 
-  for (const v of vendorsData) {
+  for (const [i, v] of vendorsData.entries()) {
     const vendor = await Vendor.create({
       name: v.name,
+      ownerName: v.name.split(" ")[0] + " Owner",
       email: v.email,
       passwordHash: await hashPassword("vendor123"),
       slug: slugify(v.name),
-      phone: "9876543210",
+      phone: `90000000${String(i).padStart(2, "0")}`,
+      fssaiLicense: `1000000000${String(i).padStart(2, "0")}`,
       category: v.category,
       description: v.description,
       address: v.address,

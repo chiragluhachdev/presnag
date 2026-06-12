@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Check, Ban, Trash2, Power, Store, Eye, Zap, Banknote, ShieldCheck,
-  Building2, Phone, Mail, MapPin, CircleAlert,
+  Building2, Phone, Mail, MapPin, CircleAlert, KeyRound,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Vendor } from "@/lib/types";
@@ -245,10 +245,32 @@ function VendorDetailModal({
 
         {/* Contact */}
         <div className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 p-3 text-sm sm:grid-cols-2">
+          <InfoRow icon={Store} label="Owner" value={v.ownerName || "—"} />
+          <InfoRow icon={Phone} label="Mobile" value={v.phone || "—"} />
           <InfoRow icon={Mail} label="Email" value={v.email || "—"} />
-          <InfoRow icon={Phone} label="Phone" value={v.phone || "—"} />
           <InfoRow icon={Store} label="Category" value={v.category} />
           <InfoRow icon={MapPin} label="Address" value={v.address || "—"} />
+          <InfoRow icon={ShieldCheck} label="FSSAI" value={v.fssaiLicense || "—"} />
+          <InfoRow icon={Building2} label="Timings" value={`${v.openTime || "—"} – ${v.closeTime || "—"}`} />
+        </div>
+
+        {/* Admin actions */}
+        <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 p-3">
+          <Button size="sm" variant="outline" onClick={async () => {
+            const pwd = window.prompt(`Set a new password for ${v.name} (min 6 chars):`);
+            if (!pwd) return;
+            try { await api(`/api/admin/vendors/${v._id}/password`, { method: "PATCH", auth: true, body: { password: pwd } }); toast.success("Password reset"); }
+            catch (e: any) { toast.error(e.message || "Failed"); }
+          }}>
+            <KeyRound className="h-4 w-4" /> Reset Password
+          </Button>
+          <Button size="sm" variant="outline" onClick={async () => {
+            if (!window.confirm(`Clear ALL order history for ${v.name}? This cannot be undone.`)) return;
+            try { const r: any = await api(`/api/admin/orders?vendorId=${v._id}`, { method: "DELETE", auth: true }); toast.success(`Cleared ${r.deleted} orders`); }
+            catch (e: any) { toast.error(e.message || "Failed"); }
+          }}>
+            <Trash2 className="h-4 w-4 text-red-500" /> Clear Orders
+          </Button>
         </div>
 
         {/* Settlement / payout */}
@@ -306,7 +328,7 @@ function CreateVendorModal({ onClose, onSaved }: { onClose: () => void; onSaved:
   const [saving, setSaving] = useState(false);
 
   async function save() {
-    if (!name || !email || !password) return toast.error("Name, email, password required");
+    if (!name || !phone || !password) return toast.error("Name, mobile and password required");
     setSaving(true);
     try {
       await api("/api/admin/vendors", { method: "POST", auth: true, body: { name, email, password, phone, category } });
@@ -328,7 +350,7 @@ function CreateVendorModal({ onClose, onSaved }: { onClose: () => void; onSaved:
     >
       <div className="space-y-4">
         <div><Label>Stall Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-        <div><Label>Email (login)</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+        <div><Label>Email (optional)</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
         <div><Label>Password</Label><Input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Set an initial password" /></div>
         <div className="grid grid-cols-2 gap-3">
           <div><Label>Phone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
