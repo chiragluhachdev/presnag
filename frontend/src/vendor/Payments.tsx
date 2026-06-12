@@ -17,7 +17,6 @@ interface EarningRow {
   customerName: string;
   customerPaid: number;
   platformFee: number;
-  gatewayFee: number;
   netAmount: number;
   settlementStatus: "Paid" | "Pending";
   settledAt: string | null;
@@ -139,20 +138,19 @@ export default function Payments() {
         <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-5 py-3">
           <Receipt className="h-4 w-4 text-brand-500" />
           <h3 className="text-sm font-bold text-slate-900">Order Earnings</h3>
-          <span className="ml-auto text-[11px] text-slate-400">Customer paid → fees → your net</span>
+          <span className="ml-auto text-[11px] text-slate-400">Customer paid → {fee}% fee → your net</span>
         </div>
         {data.orders.length === 0 ? (
           <div className="py-12 text-center text-sm text-slate-400">No paid orders yet.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="border-b border-slate-100 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="px-5 py-2.5">Order</th>
                   <th className="px-3 py-2.5">Date &amp; Time</th>
                   <th className="px-3 py-2.5 text-right">Customer Paid</th>
                   <th className="px-3 py-2.5 text-right">Fee ({fee}%)</th>
-                  <th className="px-3 py-2.5 text-right">Gateway</th>
                   <th className="px-3 py-2.5 text-right">Net to You</th>
                   <th className="px-3 py-2.5">Status</th>
                   <th className="px-5 py-2.5">Settled On</th>
@@ -168,7 +166,6 @@ export default function Payments() {
                     <td className="px-3 py-2.5 text-xs text-slate-500">{new Date(o.createdAt).toLocaleString()}</td>
                     <td className="px-3 py-2.5 text-right font-semibold text-slate-800">{rupees(o.customerPaid)}</td>
                     <td className="px-3 py-2.5 text-right font-medium text-rose-600">− {rupees(o.platformFee)}</td>
-                    <td className="px-3 py-2.5 text-right font-medium text-rose-500">− {rupees(o.gatewayFee)}</td>
                     <td className="px-3 py-2.5 text-right font-bold text-emerald-700">{rupees(o.netAmount)}</td>
                     <td className="px-3 py-2.5">
                       <span className={cn(

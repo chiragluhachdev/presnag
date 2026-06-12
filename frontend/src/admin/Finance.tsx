@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { IndianRupee, Percent, CreditCard, Wallet, TrendingUp, Receipt } from "lucide-react";
+import { IndianRupee, Percent, Wallet, TrendingUp, Receipt } from "lucide-react";
 import { api } from "@/lib/api";
 import { Spinner } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,6 @@ interface FinanceRow {
   vendorName: string;
   createdAt: string;
   customerPaid: number;
-  gatewayFee: number;
   platformFee: number;
   vendorGets: number;
   status: "Pending" | "Paid";
@@ -23,11 +22,9 @@ interface FinanceRow {
 interface FinanceData {
   date: string;
   feeRatePct: number;
-  gatewayRatePct: number;
   rows: FinanceRow[];
   totals: {
     collection: number;
-    gatewayFees: number;
     platformCommission: number;
     vendorPayoutDue: number;
     netProfit: number;
@@ -50,7 +47,7 @@ export default function Finance() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <PageHeader title="Finance" subtitle="Per-order money flow — gateway fee, commission and vendor payouts." />
+        <PageHeader title="Finance" subtitle="Per-order money flow — commission and vendor payouts." />
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium text-slate-500">Date</label>
           <input
@@ -68,12 +65,11 @@ export default function Finance() {
       ) : (
         <>
           {/* Totals */}
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <TotalCard icon={IndianRupee} label="Collection" value={m(data.totals.collection)} sub={`${data.totals.orders} paid order${data.totals.orders === 1 ? "" : "s"}`} />
-            <TotalCard icon={CreditCard} label={`Gateway Fees (${data.gatewayRatePct}%)`} value={m(data.totals.gatewayFees)} sub="MDR + GST" tone="rose" />
             <TotalCard icon={Percent} label={`PreSnag Commission (${data.feeRatePct}%)`} value={m(data.totals.platformCommission)} sub="Your earnings" tone="indigo" />
             <TotalCard icon={Wallet} label="Vendor Payout Due" value={m(data.totals.vendorPayoutDue)} sub="Total owed to vendors" tone="amber" />
-            <TotalCard icon={TrendingUp} label="Net Profit" value={m(data.totals.netProfit)} sub="After gateway & payouts" highlight />
+            <TotalCard icon={TrendingUp} label="Net Profit" value={m(data.totals.netProfit)} sub="Platform commission earned" highlight />
           </div>
 
           {/* Per-order table */}
@@ -92,7 +88,6 @@ export default function Finance() {
                       <th className="px-5 py-2.5">Order</th>
                       <th className="px-3 py-2.5">Vendor</th>
                       <th className="px-3 py-2.5 text-right">Customer Paid</th>
-                      <th className="px-3 py-2.5 text-right">Gateway Fee</th>
                       <th className="px-3 py-2.5 text-right">Platform Fee ({data.feeRatePct}%)</th>
                       <th className="px-3 py-2.5 text-right">Vendor Gets</th>
                       <th className="px-5 py-2.5">Status</th>
@@ -107,7 +102,6 @@ export default function Finance() {
                         </td>
                         <td className="px-3 py-2.5 text-slate-600">{r.vendorName}</td>
                         <td className="px-3 py-2.5 text-right font-semibold text-slate-800">{m(r.customerPaid)}</td>
-                        <td className="px-3 py-2.5 text-right text-rose-600">− {m(r.gatewayFee)}</td>
                         <td className="px-3 py-2.5 text-right text-indigo-600">− {m(r.platformFee)}</td>
                         <td className="px-3 py-2.5 text-right font-bold text-emerald-700">{m(r.vendorGets)}</td>
                         <td className="px-5 py-2.5">
@@ -123,7 +117,6 @@ export default function Finance() {
                     <tr>
                       <td className="px-5 py-3 text-slate-500" colSpan={2}>Totals</td>
                       <td className="px-3 py-3 text-right text-slate-900">{m(data.totals.collection)}</td>
-                      <td className="px-3 py-3 text-right text-rose-600">− {m(data.totals.gatewayFees)}</td>
                       <td className="px-3 py-3 text-right text-indigo-600">− {m(data.totals.platformCommission)}</td>
                       <td className="px-3 py-3 text-right text-emerald-700">{m(data.totals.vendorPayoutDue)}</td>
                       <td className="px-5 py-3"></td>
@@ -135,8 +128,8 @@ export default function Finance() {
           </div>
 
           <p className="text-center text-[11px] text-slate-400">
-            Gateway fee ({data.gatewayRatePct}%) and PreSnag's {data.feeRatePct}% commission are deducted from each order;
-            the vendor receives the remainder. Settle pending vendor payouts from the Overview → Settlements panel.
+            PreSnag's {data.feeRatePct}% commission is the only deduction per order; the vendor receives the
+            remaining {100 - data.feeRatePct}%. Settle pending vendor payouts from the Overview → Settlements panel.
           </p>
         </>
       )}

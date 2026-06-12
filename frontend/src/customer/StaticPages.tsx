@@ -498,10 +498,7 @@ export function Terms() {
 
       <LegalSection id="platform-fees" title="10. Platform Fees & Charges" icon={Percent}>
         <p>
-          <strong>For Vendors:</strong> PreSnag charges a flat platform commission of <strong>5% per order</strong>. There are no monthly subscription fees, setup fees, or hidden costs. 
-        </p>
-        <p>
-          Additionally, Vendors bear the standard payment gateway processing fee (approximately 2.36%, inclusive of GST). These fees are automatically deducted before settlement.
+          <strong>For Vendors:</strong> PreSnag charges a flat platform commission of <strong>5% per order</strong> — this is the only deduction from a Vendor's earnings. There are no monthly subscription fees, setup fees, payment-gateway charges, or hidden costs; payment-processing costs are absorbed by PreSnag.
         </p>
       </LegalSection>
 

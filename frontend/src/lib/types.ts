@@ -25,6 +25,8 @@ export interface Vendor {
   openTime?: string;
   closeTime?: string;
   isOpen: boolean;
+  isFeatured?: boolean;
+  featuredOrder?: number;
   prepTime: number;
   status: "pending" | "active" | "suspended" | "inactive";
   subscriptionPlan?: string;

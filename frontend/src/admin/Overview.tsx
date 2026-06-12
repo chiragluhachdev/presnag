@@ -99,7 +99,7 @@ export function PageHeader({ title, subtitle }: { title: string; subtitle?: stri
 }
 
 interface SettlementRow {
-  vendorId: string; vendorName: string; orders: number; gross: number; fee: number; gatewayFee: number; net: number;
+  vendorId: string; vendorName: string; orders: number; gross: number; fee: number; net: number;
   bank?: { accountHolderName?: string; accountNumberLast4?: string; ifsc?: string } | null;
 }
 
@@ -141,14 +141,13 @@ function SettlementsPanel() {
         </div>
       ) : (
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="border-b border-slate-100 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400">
               <tr>
                 <th className="px-3 py-2">Vendor</th>
                 <th className="px-3 py-2 text-right">Orders</th>
                 <th className="px-3 py-2 text-right">Gross</th>
                 <th className="px-3 py-2 text-right">Fee ({fee}%)</th>
-                <th className="px-3 py-2 text-right">Gateway</th>
                 <th className="px-3 py-2 text-right">Net to Pay</th>
                 <th className="px-3 py-2 text-right">Action</th>
               </tr>
@@ -165,7 +164,6 @@ function SettlementsPanel() {
                   <td className="px-3 py-2.5 text-right text-slate-600">{r.orders}</td>
                   <td className="px-3 py-2.5 text-right text-slate-600">{rupees(r.gross)}</td>
                   <td className="px-3 py-2.5 text-right text-rose-600">− {rupees(r.fee)}</td>
-                  <td className="px-3 py-2.5 text-right text-rose-500">− {rupees(r.gatewayFee)}</td>
                   <td className="px-3 py-2.5 text-right font-bold text-emerald-700">{rupees(r.net)}</td>
                   <td className="px-3 py-2.5 text-right">
                     <Button size="sm" onClick={() => setPayFor(r)}><Banknote className="h-4 w-4" /> Mark Paid</Button>

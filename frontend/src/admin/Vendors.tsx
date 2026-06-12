@@ -391,6 +391,8 @@ function EditVendorModal({
   const [phone, setPhone] = useState(v.phone || "");
   const [category, setCategory] = useState(v.category || "Fast Food");
   const [fssaiLicense, setFssaiLicense] = useState(v.fssaiLicense || "");
+  const [isFeatured, setIsFeatured] = useState(v.isFeatured || false);
+  const [featuredOrder, setFeaturedOrder] = useState(v.featuredOrder || 0);
   
   const payout = v.managedPayout || {};
   const [accountHolderName, setAccountHolderName] = useState(payout.accountHolderName || "");
@@ -405,7 +407,7 @@ function EditVendorModal({
     setSaving(true);
     try {
       const body = {
-        name, email, phone, category, fssaiLicense,
+        name, email, phone, category, fssaiLicense, isFeatured, featuredOrder,
         managedPayout: { accountHolderName, accountNumber, ifsc, pan }
       };
       await api(`/api/admin/vendors/${v._id}`, { method: "PUT", auth: true, body });
@@ -441,6 +443,30 @@ function EditVendorModal({
             </Select>
           </div>
         </div>
+
+        <h4 className="mt-6 font-semibold text-slate-800 border-t pt-4">Featured Status</h4>
+        <div className="flex items-center space-x-2">
+          <input 
+            type="checkbox" 
+            id="isFeatured" 
+            checked={isFeatured} 
+            onChange={(e) => setIsFeatured(e.target.checked)} 
+            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+          />
+          <label htmlFor="isFeatured" className="mb-0 cursor-pointer text-sm font-medium">Mark as Featured Vendor</label>
+        </div>
+        {isFeatured && (
+          <div className="mt-2 pl-6">
+            <Label>Display Order (1 = first, 2 = second...)</Label>
+            <Input 
+              type="number" 
+              min="1" 
+              value={featuredOrder} 
+              onChange={(e) => setFeaturedOrder(Number(e.target.value))} 
+              className="max-w-[150px]"
+            />
+          </div>
+        )}
 
         <h4 className="mt-6 font-semibold text-slate-800 border-t pt-4">Bank Details (Managed Payout)</h4>
         <div><Label>Account Holder Name</Label><Input value={accountHolderName} onChange={(e) => setAccountHolderName(e.target.value)} /></div>
