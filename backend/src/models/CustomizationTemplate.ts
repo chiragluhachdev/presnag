@@ -41,21 +41,14 @@ const customizationSchema = new Schema(
   { _id: false }
 );
 
-const menuItemSchema = new Schema(
+const templateSchema = new Schema(
   {
     vendorId: { type: Types.ObjectId, ref: "Vendor", required: true, index: true },
-    categoryId: { type: Types.ObjectId, ref: "MenuCategory", required: true, index: true },
     name: { type: String, required: true },
-    description: { type: String, default: "" },
-    price: { type: Number, required: true, min: 0 }, // base price (per unit)
-    image: { type: String, default: "" },
-    isVeg: { type: Boolean, default: true },
-    isAvailable: { type: Boolean, default: true },
-    // Optional add-on / size groups. An empty array means "no customization".
     customizations: { type: [customizationSchema], default: [] },
   },
   { timestamps: true }
 );
 
-export type MenuItemDoc = InferSchemaType<typeof menuItemSchema>;
-export const MenuItem = model("MenuItem", menuItemSchema);
+export type CustomizationTemplateDoc = InferSchemaType<typeof templateSchema>;
+export const CustomizationTemplate = model("CustomizationTemplate", templateSchema);

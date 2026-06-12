@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, FolderPlus } from "lucide-react";
 import { api } from "@/lib/api";
-import { Category, MenuItem } from "@/lib/types";
+import { Category, MenuItem, Customization } from "@/lib/types";
 import { Card, Button, Badge, Spinner, Input, Label, Textarea, Select } from "@/components/ui";
 import { Modal } from "@/components/ui/modal";
 import { ImageUpload } from "@/components/ImageUpload";
 import { toast } from "@/components/ui/toast";
 import { rupees, cn } from "@/lib/utils";
 import { VendorHeader } from "./Dashboard";
+import { CustomizationBuilder } from "./CustomizationBuilder";
 
 export default function Menu() {
   const qc = useQueryClient();
@@ -161,18 +162,20 @@ function CategoryModal({ cat, onClose, onSaved }: { cat: Category | null; onClos
 function ItemModal({
   item, categories, onClose, onSaved,
 }: { item: MenuItem | null; categories: Category[]; onClose: () => void; onSaved: () => void }) {
+  const [tab, setTab] = useState<"basic" | "custom">("basic");
   const [name, setName] = useState(item?.name || "");
   const [description, setDescription] = useState(item?.description || "");
   const [price, setPrice] = useState(item?.price?.toString() || "");
   const [categoryId, setCategoryId] = useState(item?.categoryId || categories[0]?._id || "");
   const [image, setImage] = useState(item?.image || "");
   const [isAvailable, setIsAvailable] = useState(item?.isAvailable ?? true);
+  const [customizations, setCustomizations] = useState<Customization[]>(item?.customizations || []);
   const [saving, setSaving] = useState(false);
 
   async function save() {
     if (!name.trim() || !price) return toast.error("Name and price required");
     setSaving(true);
-    const body = { name, description, price: Number(price), categoryId, image, isAvailable };
+    const body = { name, description, price: Number(price), categoryId, image, isAvailable, customizations };
     try {
       if (item) await api(`/api/vendor/items/${item._id}`, { method: "PUT", body, auth: true });
       else await api("/api/vendor/items", { method: "POST", body, auth: true });
@@ -190,26 +193,52 @@ function ItemModal({
       open
       onClose={onClose}
       title={item ? "Edit Item" : "New Item"}
+      className={tab === "custom" ? "max-w-5xl" : "max-w-lg"}
       footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button onClick={save} disabled={saving}>Save</Button></>}
     >
-      <div className="space-y-4">
-        <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-        <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} /></div>
-        <div className="grid grid-cols-2 gap-3">
-          <div><Label>Price (₹)</Label><Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} /></div>
-          <div>
-            <Label>Category</Label>
-            <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-              {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-            </Select>
-          </div>
-        </div>
-        <div><Label>Image</Label><ImageUpload value={image} onChange={setImage} folder="items" /></div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
-          Available for ordering
-        </label>
+      <div className="mb-4 flex gap-4 border-b border-slate-100">
+        <button 
+          onClick={() => setTab("basic")} 
+          className={cn("pb-2 font-medium transition", tab === "basic" ? "border-b-2 border-brand-500 text-brand-600" : "text-slate-500 hover:text-slate-800")}
+        >
+          Basic Info
+        </button>
+        <button 
+          onClick={() => setTab("custom")} 
+          className={cn("pb-2 font-medium transition", tab === "custom" ? "border-b-2 border-brand-500 text-brand-600" : "text-slate-500 hover:text-slate-800")}
+        >
+          Customizations (Builder)
+        </button>
       </div>
+
+      {tab === "basic" && (
+        <div className="space-y-4">
+          <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Price (₹)</Label><Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} /></div>
+            <div>
+              <Label>Category</Label>
+              <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+              </Select>
+            </div>
+          </div>
+          <div><Label>Image</Label><ImageUpload value={image} onChange={setImage} folder="items" /></div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
+            Available for ordering
+          </label>
+        </div>
+      )}
+
+      {tab === "custom" && (
+        <CustomizationBuilder 
+          customizations={customizations} 
+          onChange={setCustomizations} 
+          basePrice={Number(price) || 0} 
+        />
+      )}
     </Modal>
   );
 }

@@ -57,14 +57,45 @@ export interface Category {
 }
 
 export interface CustomizationOption {
+  id: string;
   label: string;
+  description?: string;
+  image?: string;
+  priceType: "fixed" | "free";
   price: number;
+  isAvailable: boolean;
+  isDefault: boolean;
+  displayOrder: number;
+  inStock: boolean;
+  isHidden: boolean;
+  availableHours?: { start: string; end: string }[];
+  availableDays?: number[];
 }
+
 export interface Customization {
+  id: string;
   name: string;
+  description?: string;
   type: "single" | "multi";
   required?: boolean;
+  isActive: boolean;
+  displayOrder: number;
+  minSelections: number;
+  maxSelections?: number;
+  dependency?: {
+    groupId: string;
+    optionId: string;
+  };
   options: CustomizationOption[];
+}
+
+export interface CustomizationTemplate {
+  _id: string;
+  vendorId: string;
+  name: string;
+  customizations: Customization[];
+  createdAt: string;
+  updatedAt: string;
 }
 export interface MenuItem {
   _id: string;

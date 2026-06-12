@@ -291,37 +291,66 @@ export default function VendorPage() {
 function CustomizeModal({
   item, onClose, onAdd,
 }: { item: MenuItem; onClose: () => void; onAdd: (addons: SelectedAddon[]) => void }) {
-  const groups = item.customizations || [];
-  // For single-choice groups, default to the first option.
+  const groups = (item.customizations || []).filter(g => g.isActive);
+  
   const [picks, setPicks] = useState<Record<string, Set<string>>>(() => {
     const init: Record<string, Set<string>> = {};
     groups.forEach((g) => {
-      init[g.name] = new Set(g.type === "single" && g.options[0] ? [g.options[0].label] : []);
+      const defaultOpts = g.options.filter(o => o.isDefault && o.isAvailable && !o.isHidden).map(o => o.id);
+      if (defaultOpts.length > 0) {
+        init[g.id] = new Set(g.type === "single" ? [defaultOpts[0]] : defaultOpts);
+      } else if (g.type === "single" && g.options.length > 0) {
+        const firstAvailable = g.options.find(o => o.isAvailable && !o.isHidden);
+        init[g.id] = new Set(firstAvailable ? [firstAvailable.id] : []);
+      } else {
+        init[g.id] = new Set();
+      }
     });
     return init;
   });
 
-  function toggle(group: string, type: "single" | "multi", label: string) {
+  function toggle(groupId: string, type: "single" | "multi", optionId: string, max?: number) {
     setPicks((p) => {
       const next = { ...p };
-      const set = new Set(next[group]);
+      const set = new Set(next[groupId] || []);
       if (type === "single") {
-        next[group] = new Set([label]);
+        next[groupId] = new Set([optionId]);
       } else {
-        set.has(label) ? set.delete(label) : set.add(label);
-        next[group] = set;
+        if (set.has(optionId)) {
+          set.delete(optionId);
+        } else {
+          if (max && set.size >= max) return p; 
+          set.add(optionId);
+        }
+        next[groupId] = set;
       }
       return next;
     });
   }
 
-  const addons: SelectedAddon[] = groups.flatMap((g) =>
+  const visibleGroups = groups.filter(g => {
+    if (g.dependency?.groupId && g.dependency?.optionId) {
+      return picks[g.dependency.groupId]?.has(g.dependency.optionId);
+    }
+    return true;
+  });
+
+  const addons: SelectedAddon[] = visibleGroups.flatMap((g) =>
     g.options
-      .filter((o) => picks[g.name]?.has(o.label))
-      .map((o) => ({ group: g.name, label: o.label, price: o.price }))
+      .filter((o) => picks[g.id]?.has(o.id) && o.isAvailable && !o.isHidden)
+      .map((o) => {
+        return { group: g.name, label: o.label, price: o.priceType === "fixed" ? o.price : 0 };
+      })
   );
+
   const total = item.price + addons.reduce((s, a) => s + a.price, 0);
-  const missingRequired = groups.some((g) => g.required && (picks[g.name]?.size ?? 0) === 0);
+
+  const missingRequired = visibleGroups.some((g) => {
+    const count = picks[g.id]?.size || 0;
+    if (g.required && count === 0) return true;
+    if (g.minSelections > 0 && count < g.minSelections) return true;
+    return false;
+  });
 
   return (
     <Modal
@@ -339,22 +368,28 @@ function CustomizeModal({
     >
       <div className="space-y-4">
         {item.description && <p className="text-xs text-slate-500">{item.description}</p>}
-        {groups.map((g) => (
-          <div key={g.name}>
-            <div className="mb-1.5 flex items-center gap-2">
+        {visibleGroups.map((g) => (
+          <div key={g.id}>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
               <h4 className="text-sm font-bold text-slate-800">{g.name}</h4>
               <span className="text-[10px] font-medium text-slate-400">
                 {g.required ? "Required" : g.type === "single" ? "Pick one" : "Optional"}
+                {g.type === "multi" && g.maxSelections ? ` (Max ${g.maxSelections})` : ""}
               </span>
             </div>
+            {g.description && <p className="text-[11px] text-slate-500 mb-2">{g.description}</p>}
             <div className="space-y-1.5">
-              {g.options.map((o) => {
-                const checked = picks[g.name]?.has(o.label) ?? false;
+              {g.options.filter(o => o.isAvailable && !o.isHidden).map((o) => {
+                const checked = picks[g.id]?.has(o.id) ?? false;
+                let displayPrice = "";
+                if (o.priceType === "fixed" && o.price > 0) displayPrice = `+ ${rupees(o.price)}`;
+                if (o.priceType === "free") displayPrice = "Free";
+
                 return (
                   <button
-                    key={o.label}
+                    key={o.id}
                     type="button"
-                    onClick={() => toggle(g.name, g.type, o.label)}
+                    onClick={() => toggle(g.id, g.type, o.id, g.maxSelections)}
                     className={cn(
                       "flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition",
                       checked ? "border-brand-500 bg-brand-50/40 ring-1 ring-brand-500" : "border-slate-200 hover:border-slate-300"
@@ -362,15 +397,18 @@ function CustomizeModal({
                   >
                     <span className="flex items-center gap-2">
                       <span className={cn(
-                        "flex h-4 w-4 items-center justify-center border",
+                        "flex h-4 w-4 items-center justify-center border shrink-0",
                         g.type === "single" ? "rounded-full" : "rounded",
                         checked ? "border-brand-500 bg-brand-500" : "border-slate-300"
                       )}>
                         {checked && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
                       </span>
-                      {o.label}
+                      <span className="flex flex-col">
+                        <span>{o.label}</span>
+                        {o.description && <span className="text-[10px] text-slate-400">{o.description}</span>}
+                      </span>
                     </span>
-                    <span className="text-xs font-medium text-slate-500">{o.price > 0 ? `+ ${rupees(o.price)}` : "Free"}</span>
+                    <span className="text-xs font-medium text-slate-500">{displayPrice}</span>
                   </button>
                 );
               })}

@@ -5,6 +5,7 @@ import { MenuCategory } from "../models/MenuCategory";
 import { MenuItem } from "../models/MenuItem";
 import { Order, ORDER_STATUSES } from "../models/Order";
 import { Coupon } from "../models/Coupon";
+import { CustomizationTemplate } from "../models/CustomizationTemplate";
 import { authenticate, requireRole } from "../middleware/auth";
 import { hashPassword, comparePassword } from "../utils/auth";
 import { asyncH, HttpError } from "../middleware/error";
@@ -255,6 +256,45 @@ router.delete(
   })
 );
 
+// ---- Customization Templates ----
+router.get(
+  "/customization-templates",
+  asyncH(async (req, res) => {
+    res.json(await CustomizationTemplate.find({ vendorId: vid(req) }).sort({ createdAt: -1 }));
+  })
+);
+
+router.post(
+  "/customization-templates",
+  asyncH(async (req, res) => {
+    const { name, customizations } = req.body;
+    if (!name) throw new HttpError(400, "Name required");
+    const template = await CustomizationTemplate.create({ vendorId: vid(req), name, customizations: customizations || [] });
+    res.status(201).json(template);
+  })
+);
+
+router.put(
+  "/customization-templates/:id",
+  asyncH(async (req, res) => {
+    const template = await CustomizationTemplate.findOneAndUpdate(
+      { _id: req.params.id, vendorId: vid(req) },
+      req.body,
+      { new: true }
+    );
+    if (!template) throw new HttpError(404, "Not found");
+    res.json(template);
+  })
+);
+
+router.delete(
+  "/customization-templates/:id",
+  asyncH(async (req, res) => {
+    await CustomizationTemplate.deleteOne({ _id: req.params.id, vendorId: vid(req) });
+    res.json({ ok: true });
+  })
+);
+
 // ---- Coupons ----
 router.get(
   "/coupons",
@@ -331,17 +371,33 @@ router.get(
     }
 
     const counts = new Map<string, { name: string; qty: number }>();
-    for (const o of orders)
+    const addonStats = new Map<string, { name: string; revenue: number; count: number }>();
+    
+    for (const o of orders) {
       for (const it of o.items) {
         const cur = counts.get(it.name) || { name: it.name, qty: 0 };
         cur.qty += it.qty;
         counts.set(it.name, cur);
+        
+        // Track advanced addon analytics
+        if (it.addons) {
+          for (const a of it.addons) {
+            const key = `${a.group}::${a.label}`;
+            const aStat = addonStats.get(key) || { name: `${a.group}: ${a.label}`, revenue: 0, count: 0 };
+            aStat.revenue += a.price * it.qty;
+            aStat.count += it.qty;
+            addonStats.set(key, aStat);
+          }
+        }
       }
+    }
 
     res.json({
       daily: [...daily.values()].sort((a, b) => a.date.localeCompare(b.date)),
       bestSellers: [...counts.values()].sort((a, b) => b.qty - a.qty).slice(0, 10),
+      topAddons: [...addonStats.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 10),
       totalRevenue: orders.reduce((s, o) => s + o.total, 0),
+      addonRevenue: [...addonStats.values()].reduce((s, a) => s + a.revenue, 0),
       totalOrders: orders.length,
     });
   })
