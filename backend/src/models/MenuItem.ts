@@ -25,6 +25,7 @@ const menuItemSchema = new Schema(
     description: { type: String, default: "" },
     price: { type: Number, required: true, min: 0 }, // base price (per unit)
     image: { type: String, default: "" },
+    isVeg: { type: Boolean, default: true },
     isAvailable: { type: Boolean, default: true },
     // Optional add-on / size groups. An empty array means "no customization".
     customizations: { type: [customizationSchema], default: [] },
