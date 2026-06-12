@@ -19,6 +19,8 @@ const vendorSchema = new Schema(
       enum: ["Tea Stall", "Café", "Bakery", "Juice Corner", "Fast Food", "Food Court", "North Indian", "Multi-Cuisine", "Healthy Food"],
       default: "Fast Food",
     },
+    isFeatured: { type: Boolean, default: false },
+    featuredOrder: { type: Number, default: 0 },
     openingHours: { type: String, default: "9:00 AM - 9:00 PM" },
     openTime: { type: String, default: "09:00" },
     closeTime: { type: String, default: "21:00" },

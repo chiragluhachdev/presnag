@@ -40,8 +40,8 @@ router.get(
     }
 
     const vendors = await Vendor.find(filter)
-      .select("name slug logo banner category isOpen prepTime address description lat lng createdAt")
-      .sort({ createdAt: -1 });
+      .select("name slug logo banner category isOpen prepTime address description lat lng createdAt isFeatured featuredOrder")
+      .sort({ isFeatured: -1, featuredOrder: 1, createdAt: -1 });
     res.json(vendors);
   })
 );

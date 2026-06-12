@@ -11,7 +11,7 @@ import { hashPassword, comparePassword } from "../utils/auth";
 import { asyncH, HttpError } from "../middleware/error";
 import { emitOrderStatus } from "../realtime/io";
 import { env, cashfreePgEnabled } from "../config/env";
-import { PLATFORM_FEE_PCT, platformFee, gatewayFee, vendorNet } from "../config/constants";
+import { PLATFORM_FEE_PCT, platformFee, vendorNet } from "../config/constants";
 import {
   createPayoutBeneficiary,
   createEasySplitVendor,
@@ -426,7 +426,6 @@ router.get(
       customerName: o.customerName,
       customerPaid: o.total,
       platformFee: platformFee(o.total),
-      gatewayFee: gatewayFee(o.total),
       netAmount: vendorNet(o.total),
       settlementStatus: o.settlementStatus === "settled" ? "Paid" : "Pending",
       settledAt: o.settledAt || null,

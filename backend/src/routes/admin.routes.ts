@@ -6,7 +6,7 @@ import { MenuItem } from "../models/MenuItem";
 import { Coupon } from "../models/Coupon";
 import { getSettings } from "../models/Setting";
 import { runManagedSettlement } from "../jobs/dailyPayout";
-import { PLATFORM_FEE_RATE, PLATFORM_FEE_PCT, GATEWAY_FEE_RATE, platformFee, gatewayFee, vendorNet } from "../config/constants";
+import { PLATFORM_FEE_RATE, PLATFORM_FEE_PCT, platformFee, vendorNet } from "../config/constants";
 import { authenticate, requireRole } from "../middleware/auth";
 import { asyncH, HttpError } from "../middleware/error";
 import { hashPassword } from "../utils/auth";
@@ -117,39 +117,33 @@ router.get(
       .limit(500);
 
     const rows = orders.map((o) => {
-      const gFee = gatewayFee(o.total);
-      const pFee = platformFee(o.total);
       const vendor: any = o.vendorId;
       return {
         orderNumber: o.orderNumber,
         vendorName: vendor?.name || "—",
         createdAt: o.createdAt,
         customerPaid: o.total,
-        gatewayFee: gFee,
-        platformFee: pFee,
+        platformFee: platformFee(o.total),
         vendorGets: vendorNet(o.total),
         status: o.settlementStatus === "settled" ? "Paid" : "Pending",
       };
     });
 
-    const sum = (k: "customerPaid" | "gatewayFee" | "platformFee" | "vendorGets") =>
+    const sum = (k: "customerPaid" | "platformFee" | "vendorGets") =>
       Math.round(rows.reduce((s, r) => s + r[k], 0) * 100) / 100;
     const collection = sum("customerPaid");
-    const gatewayFees = sum("gatewayFee");
     const platformCommission = sum("platformFee");
     const vendorPayoutDue = sum("vendorGets");
 
     res.json({
       date: start.toISOString().slice(0, 10),
       feeRatePct: PLATFORM_FEE_PCT,
-      gatewayRatePct: Math.round(GATEWAY_FEE_RATE * 10000) / 100,
       rows,
       totals: {
         collection,
-        gatewayFees,
         platformCommission,
         vendorPayoutDue,
-        netProfit: platformCommission, // gateway fee is borne by the vendor
+        netProfit: platformCommission, // PreSnag's commission (gateway costs handled off-platform)
         orders: rows.length,
       },
     });
@@ -178,7 +172,6 @@ router.get(
         orders: p.orders,
         gross: p.gross,
         fee: platformFee(p.gross),
-        gatewayFee: gatewayFee(p.gross),
         net: vendorNet(p.gross),
       };
     });
@@ -287,7 +280,7 @@ router.patch(
 router.put(
   "/vendors/:id",
   asyncH(async (req, res) => {
-    const allowed = ["name", "email", "phone", "category", "address", "subscriptionPlan", "fssaiLicense"];
+    const allowed = ["name", "email", "phone", "category", "address", "subscriptionPlan", "fssaiLicense", "isFeatured", "featuredOrder"];
     const update: Record<string, any> = {};
     for (const k of allowed) if (k in req.body) update[k] = req.body[k];
     
