@@ -33,6 +33,9 @@ export default function Vendors() {
   const { data: vendors, isLoading } = useQuery({
     queryKey: ["admin-vendors", filter],
     queryFn: () => api<Vendor[]>(`/api/admin/vendors?status=${filter}`, { auth: true }),
+    // Vendors can change their own logo/banner/details from their panel, so keep
+    // the admin list fresh when the admin returns to the tab.
+    refetchOnWindowFocus: true,
   });
 
   function refresh() {

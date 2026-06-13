@@ -424,6 +424,7 @@ function FeaturedVendorsCard() {
   const { data: vendors, isLoading } = useQuery({
     queryKey: ["admin-vendors", "active"],
     queryFn: () => api<Vendor[]>("/api/admin/vendors?status=active", { auth: true }),
+    refetchOnWindowFocus: true,
   });
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
