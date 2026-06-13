@@ -25,6 +25,7 @@ function settingsPayload(s: any) {
   return {
     maintenanceMode: s.maintenanceMode,
     paymentsDisabled: s.paymentsDisabled,
+    codEnabled: s.codEnabled,
     paymentProvider: s.paymentProvider,
     demoBanner: s.demoBanner,
   };
@@ -46,6 +47,9 @@ router.put(
     }
     if (typeof req.body.paymentsDisabled === "boolean") {
       settings.paymentsDisabled = req.body.paymentsDisabled;
+    }
+    if (typeof req.body.codEnabled === "boolean") {
+      settings.codEnabled = req.body.codEnabled;
     }
     if (req.body.paymentProvider === "CASHFREE" || req.body.paymentProvider === "RAZORPAY") {
       settings.paymentProvider = req.body.paymentProvider;

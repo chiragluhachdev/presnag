@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { Outlet, NavLink, useNavigate, Link } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard, ClipboardList, UtensilsCrossed, Store, QrCode, Ticket, BarChart3, LogOut, Menu, X,
-  Volume2, VolumeX, Wallet,
+  Volume2, VolumeX, Wallet, BellRing,
 } from "lucide-react";
 import { useAuth } from "@/store/authStore";
 import { useSound } from "@/store/soundStore";
 import { getSocket } from "@/lib/socket";
+import { api } from "@/lib/api";
+import { Order } from "@/lib/types";
 import { toast } from "@/components/ui/toast";
-import { playOrderChime, notify, ensureNotificationPermission } from "@/lib/sound";
+import { playOrderChime, notify, ensureNotificationPermission, startOrderAlarm, stopOrderAlarm } from "@/lib/sound";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -31,9 +33,20 @@ export default function VendorLayout() {
   const [open, setOpen] = useState(false);
 
   function handleLogout() {
+    stopOrderAlarm();
     logout();
     navigate("/vendor/login");
   }
+
+  // Live list of paid orders (shared with the Orders page via the same key).
+  // A safety-net refetch covers any missed socket event.
+  const { data: orders } = useQuery({
+    queryKey: ["vendor-orders"],
+    queryFn: () => api<Order[]>(`/api/vendor/orders?status=all`, { auth: true }),
+    enabled: !!user?.id,
+    refetchInterval: 30000,
+  });
+  const pendingCount = (orders || []).filter((o) => o.status === "received").length;
 
   // Global new-order alerts — active on EVERY vendor screen while logged in.
   useEffect(() => {
@@ -43,7 +56,6 @@ export default function VendorLayout() {
     socket.emit("vendor:join", user.id);
 
     const onNew = (order: any) => {
-      if (useSound.getState().enabled) playOrderChime();
       toast.info("🔔 New order received!");
       notify("New order received", order?.orderNumber ? `Order ${order.orderNumber}` : "Open your dashboard to view it.");
       qc.invalidateQueries({ queryKey: ["vendor-orders"] });
@@ -60,6 +72,16 @@ export default function VendorLayout() {
       socket.off("order:status", onStatus);
     };
   }, [user?.id, qc]);
+
+  // Ring the looping alarm while any order is awaiting accept/decline.
+  // It stops the moment the last "received" order is handled (or sound is off).
+  useEffect(() => {
+    if (soundOn && pendingCount > 0) startOrderAlarm();
+    else stopOrderAlarm();
+  }, [soundOn, pendingCount]);
+
+  // Silence the alarm if the dashboard unmounts (e.g. logout / navigating away).
+  useEffect(() => () => stopOrderAlarm(), []);
 
   const handleToggleSound = () => {
     toggleSound();
@@ -181,6 +203,29 @@ export default function VendorLayout() {
             {soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
           </button>
         </header>
+        {/* Persistent new-order alert — stays (and the alarm keeps ringing) until
+            every pending order is accepted or declined. */}
+        {pendingCount > 0 && (
+          <button
+            onClick={() => navigate("/vendor/orders")}
+            className="flex items-center gap-3 border-b border-brand-200 bg-brand-50 px-4 py-3 text-left transition hover:bg-brand-100 sm:px-6 lg:px-8"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white">
+              <BellRing className="h-5 w-5 animate-bounce" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-bold text-brand-800">
+                {pendingCount} new order{pendingCount === 1 ? "" : "s"} awaiting your response
+              </div>
+              <div className="text-xs text-brand-600">Tap to review and accept or decline — the alarm stops once they're handled.</div>
+            </div>
+            {!soundOn && (
+              <span className="hidden shrink-0 items-center gap-1 rounded-full bg-white/70 px-2 py-1 text-[10px] font-semibold text-brand-700 sm:inline-flex">
+                <VolumeX className="h-3.5 w-3.5" /> Sound off
+              </span>
+            )}
+          </button>
+        )}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>

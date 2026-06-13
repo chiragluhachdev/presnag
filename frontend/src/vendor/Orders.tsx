@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Volume2, VolumeX, Phone, StickyNote } from "lucide-react";
+import { Volume2, VolumeX, Phone, StickyNote, Check, X, Timer, MessageCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { Order, OrderStatus } from "@/lib/types";
 import { useSound } from "@/store/soundStore";
 import { Button, Badge, Spinner } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { rupees, timeAgo, cn } from "@/lib/utils";
+import { waConfirmUrl, waCancelUrl } from "@/lib/whatsapp";
 import { VendorHeader } from "./Dashboard";
 import { playClickSound } from "@/lib/sound";
 
@@ -33,6 +34,10 @@ const statusColor: Record<OrderStatus, any> = {
   cancelled: "red",
 };
 
+// Must match the backend AUTO_CANCEL_SECONDS — a new order auto-declines if the
+// vendor doesn't respond within this window.
+const AUTO_CANCEL_SECONDS = 60;
+
 export default function Orders() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"all" | "ready" | "completed">("all");
@@ -43,10 +48,16 @@ export default function Orders() {
     queryFn: () => api<Order[]>(`/api/vendor/orders?status=all`, { auth: true }),
   });
 
-  async function updateStatus(id: string, status: OrderStatus) {
+  async function updateStatus(id: string, status: OrderStatus, reason?: string) {
     try {
       if (useSound.getState().enabled) playClickSound();
-      await api(`/api/vendor/orders/${id}/status`, { method: "PATCH", body: { status }, auth: true });
+      await api(`/api/vendor/orders/${id}/status`, {
+        method: "PATCH",
+        body: { status, ...(reason ? { reason } : {}) },
+        auth: true,
+      });
+      if (status === "accepted") toast.success("Order accepted");
+      if (status === "cancelled") toast.success("Order declined");
       qc.invalidateQueries({ queryKey: ["vendor-orders"] });
       qc.invalidateQueries({ queryKey: ["vendor-stats"] });
     } catch (e: any) {
@@ -88,7 +99,20 @@ interface OrdersView {
   setTab: (t: "all" | "ready" | "completed") => void;
   orders: Order[] | undefined;
   isLoading: boolean;
-  updateStatus: (id: string, status: OrderStatus) => void;
+  updateStatus: (id: string, status: OrderStatus, reason?: string) => void;
+}
+
+/** Live mm:ss left before a new order auto-declines. */
+function useAutoCancelCountdown(createdAt: string) {
+  const deadline = new Date(createdAt).getTime() + AUTO_CANCEL_SECONDS * 1000;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
+  }, []);
+  const ms = Math.max(0, deadline - now);
+  const secs = Math.ceil(ms / 1000);
+  return { secs, expired: ms <= 0, label: `0:${String(secs).padStart(2, "0")}` };
 }
 
 function Tabs({ tab, setTab }: Pick<OrdersView, "tab" | "setTab">) {
@@ -185,10 +209,17 @@ function OrdersDesktop({ tab, setTab, orders, isLoading, updateStatus }: OrdersV
   );
 }
 
-function OrderCard({ o, onUpdate }: { o: Order; onUpdate: (id: string, s: OrderStatus) => void }) {
+function OrderCard({ o, onUpdate }: { o: Order; onUpdate: (id: string, s: OrderStatus, reason?: string) => void }) {
   const next = NEXT[o.status];
   const isNew = o.status === "received";
   const canCancel = o.status !== "collected" && o.status !== "cancelled";
+  const countdown = useAutoCancelCountdown(o.createdAt);
+
+  function decline() {
+    if (confirm(`Decline order ${o.orderNumber}? The customer will be notified.`)) {
+      onUpdate(o._id, "cancelled");
+    }
+  }
 
   return (
     <div
@@ -229,12 +260,23 @@ function OrderCard({ o, onUpdate }: { o: Order; onUpdate: (id: string, s: OrderS
           <div className="truncate text-sm font-semibold text-slate-800">{o.customerName}</div>
           <div className="text-xs text-slate-400">{o.customerPhone}</div>
         </div>
-        <a
-          href={`tel:${o.customerPhone}`}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-brand-600 shadow-sm ring-1 ring-slate-200 transition hover:bg-brand-50"
-        >
-          <Phone className="h-3.5 w-3.5" /> Call
-        </a>
+        <div className="flex shrink-0 items-center gap-2">
+          <a
+            href={o.status === "cancelled" ? waCancelUrl(o) : waConfirmUrl(o)}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={o.status === "cancelled" ? "Send cancellation message on WhatsApp" : "Send confirmation on WhatsApp"}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-emerald-600 shadow-sm ring-1 ring-slate-200 transition hover:bg-emerald-50"
+          >
+            <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+          </a>
+          <a
+            href={`tel:${o.customerPhone}`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-brand-600 shadow-sm ring-1 ring-slate-200 transition hover:bg-brand-50"
+          >
+            <Phone className="h-3.5 w-3.5" /> Call
+          </a>
+        </div>
       </div>
 
       {/* Items */}
@@ -270,19 +312,52 @@ function OrderCard({ o, onUpdate }: { o: Order; onUpdate: (id: string, s: OrderS
       </div>
 
       {/* Actions */}
-      {(next || canCancel) && (
-        <div className="mt-3 flex gap-2">
-          {next && (
-            <Button className="h-10 flex-1" onClick={() => onUpdate(o._id, next.to)}>
-              {next.label}
+      {isNew ? (
+        <div className="mt-3">
+          {/* Auto-decline countdown */}
+          <div
+            className={cn(
+              "mb-2 flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold",
+              countdown.secs <= 15 ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"
+            )}
+          >
+            <Timer className="h-3.5 w-3.5" />
+            {countdown.expired ? "Auto-declining…" : `Respond within ${countdown.label} — auto-declines after`}
+          </div>
+          <div className="flex gap-2">
+            <Button className="h-11 flex-1" onClick={() => onUpdate(o._id, "accepted")}>
+              <Check className="h-4 w-4" /> Accept
             </Button>
-          )}
-          {canCancel && (
-            <Button variant="outline" className="h-10" onClick={() => onUpdate(o._id, "cancelled")}>
-              Cancel
+            <Button
+              variant="outline"
+              className="h-11 flex-1 border-red-200 text-red-600 hover:bg-red-50"
+              onClick={decline}
+            >
+              <X className="h-4 w-4" /> Decline
             </Button>
-          )}
+          </div>
         </div>
+      ) : (
+        (next || canCancel) && (
+          <div className="mt-3 flex gap-2">
+            {next && (
+              <Button className="h-10 flex-1" onClick={() => onUpdate(o._id, next.to)}>
+                {next.label}
+              </Button>
+            )}
+            {canCancel && (
+              <Button
+                variant="outline"
+                className="h-10"
+                onClick={() => {
+                  if (confirm(`Cancel order ${o.orderNumber}?`)) onUpdate(o._id, "cancelled");
+                }}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
+        )
       )}
     </div>
   );

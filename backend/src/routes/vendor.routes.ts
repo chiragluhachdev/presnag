@@ -153,11 +153,17 @@ router.get(
 router.patch(
   "/orders/:id/status",
   asyncH(async (req, res) => {
-    const { status } = req.body;
+    const { status, reason } = req.body;
     if (!ORDER_STATUSES.includes(status)) throw new HttpError(400, "Invalid status");
+    const extra: Record<string, unknown> =
+      status === "collected"
+        ? { paymentStatus: "paid" }
+        : status === "cancelled"
+        ? { cancelledBy: "vendor", cancelReason: String(reason || "Declined by the restaurant.") }
+        : {};
     const order = await Order.findOneAndUpdate(
       { _id: req.params.id, vendorId: vid(req) },
-      { status, ...(status === "collected" ? { paymentStatus: "paid" } : {}) },
+      { status, ...extra },
       { new: true }
     );
     if (!order) throw new HttpError(404, "Order not found");

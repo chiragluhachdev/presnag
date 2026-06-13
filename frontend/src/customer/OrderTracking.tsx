@@ -122,9 +122,27 @@
           </div>
 
           {cancelled ? (
-            <Card className="flex flex-col items-center gap-2 p-6 text-center">
-              <XCircle className="h-10 w-10 text-red-500" />
-              <p className="text-sm font-semibold text-slate-800">This order was cancelled</p>
+            <Card className="flex flex-col items-center gap-2.5 p-6 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+                <XCircle className="h-8 w-8 text-red-500" />
+              </div>
+              <p className="text-base font-bold text-slate-900">
+                {order.cancelledBy === "system" ? "Order couldn't be accepted" : "Order cancelled"}
+              </p>
+              <p className="max-w-xs text-xs leading-relaxed text-slate-500">
+                {order.cancelReason ||
+                  (order.cancelledBy === "system"
+                    ? "The restaurant didn't respond in time, so your order was cancelled."
+                    : "This order was cancelled.")}
+              </p>
+              {order.paymentStatus === "paid" && order.paymentMethod !== "COD" && (
+                <p className="mt-1 max-w-xs rounded-lg bg-emerald-50 px-3 py-2 text-[11px] font-medium leading-relaxed text-emerald-700">
+                  Any amount you paid will be refunded to your original payment method within 5–7 business days.
+                </p>
+              )}
+              <Link to="/" className="mt-1 text-xs font-semibold text-brand-600 hover:underline">
+                Order from another place
+              </Link>
             </Card>
           ) : (
             <Card className="overflow-hidden shadow-sm">

@@ -19,6 +19,7 @@ router.get(
     res.json({
       maintenanceMode: settings.maintenanceMode,
       paymentsDisabled: settings.paymentsDisabled,
+      codEnabled: settings.codEnabled,
       paymentProvider: settings.paymentProvider,
       demoBanner: settings.demoBanner,
     });

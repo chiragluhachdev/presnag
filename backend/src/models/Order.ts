@@ -47,6 +47,10 @@ const orderSchema = new Schema(
     status: { type: String, enum: ORDER_STATUSES, default: "received", index: true },
     pickupTime: { type: String, default: "" },
 
+    // ---- Cancellation metadata ----
+    cancelledBy: { type: String, enum: ["vendor", "system", "admin", "customer", ""], default: "" },
+    cancelReason: { type: String, default: "" },
+
     // ---- Settlement (how this order's money reaches the vendor) ----
     settlementMode: { type: String, enum: ["MANAGED", "DIRECT"], default: "MANAGED" },
     // DIRECT orders settle instantly via split → not_applicable.

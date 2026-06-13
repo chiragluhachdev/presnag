@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CreditCard, Tag, Loader2, ShoppingCart, CheckCircle2, Store, Clock, ShieldCheck, User, Phone, FileText, Circle, Smartphone, Utensils, ShoppingBag } from "lucide-react";
+import { CreditCard, Tag, Loader2, ShoppingCart, CheckCircle2, Store, Clock, ShieldCheck, User, Phone, FileText, Circle, Smartphone, Utensils, ShoppingBag, Banknote } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Order, Vendor } from "@/lib/types";
@@ -25,11 +25,12 @@ export default function Checkout() {
 
   const { data: settings } = useQuery({
     queryKey: ["public-settings"],
-    queryFn: () => api<{ paymentsDisabled?: boolean }>("/api/public/settings"),
+    queryFn: () => api<{ paymentsDisabled?: boolean; codEnabled?: boolean }>("/api/public/settings"),
   });
 
   const isStoreClosed = vendorData ? !vendorData.vendor.isOpen : false;
   const paymentsDisabled = !!settings?.paymentsDisabled;
+  const codEnabled = !!settings?.codEnabled;
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -40,6 +41,11 @@ export default function Checkout() {
   const [discount, setDiscount] = useState(0);
   const [appliedCode, setAppliedCode] = useState("");
   const [placing, setPlacing] = useState(false);
+
+  // If the admin turns COD off while it's selected, fall back to online payment.
+  useEffect(() => {
+    if (!codEnabled && method === "COD") setMethod("RAZORPAY");
+  }, [codEnabled, method]);
 
   const subtotal = cart.subtotal();
   const total = subtotal - discount;
@@ -93,6 +99,8 @@ export default function Checkout() {
     setPlacing(true);
 
     try {
+      const isCod = method === "COD" && codEnabled;
+
       // 1. Create the PreSnag order (unpaid until Cashfree confirms payment).
       const order = await api<Order>("/api/public/orders", {
         method: "POST",
@@ -102,7 +110,7 @@ export default function Checkout() {
           customerPhone: phone,
           note,
           orderType,
-          paymentMethod: "CASHFREE",
+          paymentMethod: isCod ? "COD" : "CASHFREE",
           couponCode: appliedCode,
           items: cart.lines.map((l) => ({
             itemId: l.itemId,
@@ -112,6 +120,14 @@ export default function Checkout() {
           })),
         },
       });
+
+      // Cash on Delivery — no gateway; the order is placed and the vendor alerted.
+      if (isCod) {
+        toast.success("Order placed! Pay at pickup.");
+        cart.clear();
+        navigate(`/order/${order.orderNumber}`);
+        return;
+      }
 
       // 2. Create the payment order with whichever gateway the admin enabled.
       const pay = await api<{
@@ -334,6 +350,34 @@ export default function Checkout() {
                     <Circle className="h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 text-slate-200 shrink-0" />
                   )}
                 </button>
+
+                {/* Cash on Delivery — only when the admin has enabled it. */}
+                {codEnabled && (
+                  <button
+                    onClick={() => setMethod("COD")}
+                    className={cn(
+                      "relative flex w-full items-center gap-2 min-[375px]:gap-3 rounded-xl border p-3 min-[375px]:p-4 text-left transition-all",
+                      method === "COD"
+                        ? "border-brand-500 bg-brand-50/20 ring-1 ring-brand-500 shadow-sm"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    )}
+                  >
+                    <Banknote className={cn("h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 shrink-0", method === "COD" ? "text-brand-500" : "text-slate-400")} />
+                    <div className="flex-1">
+                      <span className={cn("text-xs min-[375px]:text-sm font-semibold", method === "COD" ? "text-slate-900" : "text-slate-700")}>
+                        Cash on Delivery
+                      </span>
+                      <div className="mt-0.5 text-[10px] min-[375px]:text-xs text-slate-500">
+                        Pay at pickup — no online payment
+                      </div>
+                    </div>
+                    {method === "COD" ? (
+                      <CheckCircle2 className="h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 text-brand-500 fill-brand-500 text-white shrink-0" />
+                    ) : (
+                      <Circle className="h-5 w-5 min-[375px]:h-6 min-[375px]:w-6 text-slate-200 shrink-0" />
+                    )}
+                  </button>
+                )}
               </div>
             </Card>
           </div>

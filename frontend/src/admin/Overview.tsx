@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench, Wallet, Loader2, Banknote, CreditCard, Megaphone, Ban, Star, ChevronUp, ChevronDown, Plus, X } from "lucide-react";
+import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench, Wallet, Loader2, Banknote, CreditCard, Megaphone, Ban, Star, ChevronUp, ChevronDown, Plus, X, HandCoins } from "lucide-react";
 import { api } from "@/lib/api";
 import { Vendor } from "@/lib/types";
 import { Spinner, Button, Input, Label, Textarea } from "@/components/ui";
@@ -46,6 +46,8 @@ export default function Overview() {
       <PaymentGatewayCard />
 
       <PaymentsToggle />
+
+      <CodToggle />
 
       <DemoBannerCard />
 
@@ -598,6 +600,87 @@ function FeaturedVendorsCard() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CodToggle() {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["admin-settings"],
+    queryFn: () => api<{ codEnabled: boolean }>("/api/admin/settings", { auth: true }),
+  });
+  const on = !!data?.codEnabled;
+
+  const mutation = useMutation({
+    mutationFn: (codEnabled: boolean) =>
+      api<{ codEnabled: boolean }>("/api/admin/settings", {
+        method: "PUT",
+        auth: true,
+        body: { codEnabled },
+      }),
+    onSuccess: (res) => {
+      qc.setQueryData(["admin-settings"], res);
+      qc.invalidateQueries({ queryKey: ["public-settings"] });
+      toast.success(res.codEnabled ? "Cash on Delivery is now available at checkout." : "Cash on Delivery is now hidden at checkout.");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update"),
+  });
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-4 rounded-2xl border p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between",
+        on ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+            on ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-500"
+          )}
+        >
+          <HandCoins className="h-5 w-5" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-900">Cash on Delivery</h3>
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                on ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
+              )}
+            >
+              {on ? "On" : "Off"}
+            </span>
+          </div>
+          <p className="mt-0.5 max-w-xl text-xs text-slate-500">
+            When ON, customers can choose to pay at pickup (no online payment). Handy for testing the
+            order flow without a real transaction.
+          </p>
+        </div>
+      </div>
+
+      {/* Toggle switch */}
+      <button
+        type="button"
+        disabled={mutation.isPending || !data}
+        onClick={() => mutation.mutate(!on)}
+        className={cn(
+          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition disabled:opacity-50",
+          on ? "bg-emerald-500" : "bg-slate-300"
+        )}
+        aria-pressed={on}
+        title="Toggle Cash on Delivery"
+      >
+        <span
+          className={cn(
+            "inline-block h-5 w-5 transform rounded-full bg-white shadow transition",
+            on ? "translate-x-6" : "translate-x-1"
+          )}
+        />
+      </button>
     </div>
   );
 }

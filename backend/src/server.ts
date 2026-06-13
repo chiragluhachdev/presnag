@@ -3,6 +3,7 @@ import { createApp } from "./app";
 import { connectDB } from "./config/db";
 import { initIO } from "./realtime/io";
 import { scheduleDailyPayout } from "./jobs/dailyPayout";
+import { scheduleAutoCancel } from "./jobs/autoCancel";
 import { env } from "./config/env";
 
 async function main() {
@@ -32,6 +33,9 @@ async function main() {
 
   // Schedule the once-daily managed-vendor settlement payout.
   scheduleDailyPayout();
+
+  // Auto-decline orders the vendor doesn't answer within the response window.
+  scheduleAutoCancel();
 }
 
 main().catch((err) => {

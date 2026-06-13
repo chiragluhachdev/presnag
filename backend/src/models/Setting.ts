@@ -9,6 +9,9 @@ const settingSchema = new Schema(
     // When ON, customer checkout is paused — no payment orders are created and
     // the pay button is disabled. Vendors/admin are unaffected.
     paymentsDisabled: { type: Boolean, default: false },
+    // When ON, customers can choose Cash on Delivery (pay at pickup) at checkout.
+    // Mainly a testing aid so orders can be placed without an online payment.
+    codEnabled: { type: Boolean, default: false },
     // Which payment gateway is active for customer checkout.
     paymentProvider: { type: String, enum: ["CASHFREE", "RAZORPAY"], default: "CASHFREE" },
     // Admin-controlled demo/notice banner.

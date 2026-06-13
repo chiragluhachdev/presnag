@@ -152,6 +152,8 @@ export interface Order {
   paymentStatus: "pending" | "paid";
   status: OrderStatus;
   pickupTime?: string;
+  cancelledBy?: "vendor" | "system" | "admin" | "customer" | "";
+  cancelReason?: string;
   settlementMode?: "MANAGED" | "DIRECT";
   settlementStatus?: "not_applicable" | "pending" | "processing" | "settled" | "failed";
   createdAt: string;

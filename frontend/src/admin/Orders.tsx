@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
+import { Trash2, MessageCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { Order, Vendor } from "@/lib/types";
 import { Badge, Spinner, Input, Select, Button } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
 import { rupees, timeAgo } from "@/lib/utils";
+import { waConfirmUrl, waCancelUrl } from "@/lib/whatsapp";
 import { PageHeader } from "./Overview";
 
 const STATUSES = ["all", "received", "accepted", "preparing", "ready", "collected", "cancelled"];
@@ -79,6 +80,7 @@ export default function Orders() {
                 <th className="px-5 py-3">Payment</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Time</th>
+                <th className="px-5 py-3">Notify</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -100,6 +102,9 @@ export default function Orders() {
                     </td>
                     <td className="px-5 py-3"><Badge color={statusColor[o.status]}>{o.status}</Badge></td>
                     <td className="px-5 py-3 text-xs text-slate-400">{timeAgo(o.createdAt)}</td>
+                    <td className="px-5 py-3">
+                      <WhatsAppButton o={o} vendorName={vendor?.name} />
+                    </td>
                   </tr>
                 );
               })}
@@ -108,5 +113,24 @@ export default function Orders() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Opens WhatsApp with a pre-filled confirmation or cancellation message.
+ *  The admin just presses "Send" — no API, no automatic messaging. */
+function WhatsAppButton({ o, vendorName }: { o: Order; vendorName?: string }) {
+  const cancelled = o.status === "cancelled";
+  const href = cancelled ? waCancelUrl(o, vendorName) : waConfirmUrl(o, vendorName);
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={cancelled ? "Send cancellation message on WhatsApp" : "Send order confirmation on WhatsApp"}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+    >
+      <MessageCircle className="h-3.5 w-3.5" />
+      {cancelled ? "Cancellation" : "Confirm"}
+    </a>
   );
 }
