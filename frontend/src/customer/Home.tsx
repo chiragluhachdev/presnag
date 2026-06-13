@@ -92,10 +92,16 @@ export default function Home() {
     );
   }
 
-  const featured = useMemo(
-    () => [...(vendors || [])].sort((a, b) => Number(b.isOpen) - Number(a.isOpen)).slice(0, 6),
-    [vendors]
-  );
+  const featured = useMemo(() => {
+    const all = vendors || [];
+    // Admin-curated picks take priority, shown in the order the admin set.
+    const picked = all
+      .filter((v) => v.isFeatured)
+      .sort((a, b) => (a.featuredOrder ?? 0) - (b.featuredOrder ?? 0));
+    if (picked.length) return picked;
+    // Fallback when nothing is explicitly featured: open vendors first.
+    return [...all].sort((a, b) => Number(b.isOpen) - Number(a.isOpen)).slice(0, 6);
+  }, [vendors]);
   const nearby = useMemo(() => {
     if (!loc || !vendors) return [];
     return vendors

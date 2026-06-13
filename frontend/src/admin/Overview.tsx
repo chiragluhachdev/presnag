@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench, Wallet, Loader2, Banknote, CreditCard, Megaphone, Ban } from "lucide-react";
+import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench, Wallet, Loader2, Banknote, CreditCard, Megaphone, Ban, Star, ChevronUp, ChevronDown, Plus, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { Vendor } from "@/lib/types";
 import { Spinner, Button, Input, Label, Textarea } from "@/components/ui";
 import { Modal } from "@/components/ui/modal";
 import { toast } from "@/components/ui/toast";
@@ -47,6 +48,8 @@ export default function Overview() {
       <PaymentsToggle />
 
       <DemoBannerCard />
+
+      <FeaturedVendorsCard />
 
       <SettlementsPanel />
 
@@ -410,6 +413,188 @@ function PaymentGatewayCard() {
           <p className="mt-2 text-[11px] text-slate-400">
             Active: <span className="font-semibold text-slate-600">{provider}</span>
           </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeaturedVendorsCard() {
+  const qc = useQueryClient();
+  const { data: vendors, isLoading } = useQuery({
+    queryKey: ["admin-vendors", "active"],
+    queryFn: () => api<Vendor[]>("/api/admin/vendors?status=active", { auth: true }),
+  });
+  const [busy, setBusy] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  const featured = (vendors || [])
+    .filter((v) => v.isFeatured)
+    .sort((a, b) => (a.featuredOrder ?? 0) - (b.featuredOrder ?? 0));
+  const others = (vendors || []).filter((v) => !v.isFeatured);
+
+  const patch = (id: string, body: Record<string, any>) =>
+    api(`/api/admin/vendors/${id}`, { method: "PUT", auth: true, body });
+  const refresh = () => qc.invalidateQueries({ queryKey: ["admin-vendors"] });
+
+  async function addFeatured(v: Vendor) {
+    setBusy(true);
+    try {
+      await patch(v._id, { isFeatured: true, featuredOrder: featured.length + 1 });
+      toast.success(`${v.name} is now featured`);
+      setAdding(false);
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeFeatured(v: Vendor) {
+    setBusy(true);
+    try {
+      await patch(v._id, { isFeatured: false, featuredOrder: 0 });
+      // Re-pack the remaining featured vendors into 1..n order.
+      const rest = featured.filter((f) => f._id !== v._id);
+      await Promise.all(rest.map((f, i) => patch(f._id, { featuredOrder: i + 1 })));
+      toast.success(`${v.name} removed from featured`);
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function move(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= featured.length) return;
+    const list = [...featured];
+    [list[index], list[target]] = [list[target], list[index]];
+    setBusy(true);
+    try {
+      // Reassign sequential order to all featured vendors so reordering is reliable
+      // even if existing featuredOrder values are missing or duplicated.
+      await Promise.all(list.map((v, i) => patch(v._id, { featuredOrder: i + 1 })));
+      refresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+          <Star className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Featured Vendors</h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Pick which vendors appear in the homepage "Featured" row and drag them into the order
+                customers see.
+              </p>
+            </div>
+            {!adding && others.length > 0 && (
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => setAdding(true)}>
+                <Plus className="h-4 w-4" /> Add vendor
+              </Button>
+            )}
+          </div>
+
+          {/* Add-a-vendor picker */}
+          {adding && (
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600">Choose a vendor to feature</span>
+                <button onClick={() => setAdding(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              {others.length === 0 ? (
+                <div className="py-3 text-center text-xs text-slate-400">All active vendors are already featured.</div>
+              ) : (
+                <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
+                  {others.map((v) => (
+                    <button
+                      key={v._id}
+                      disabled={busy}
+                      onClick={() => addFeatured(v)}
+                      className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-2 text-left transition hover:border-amber-300 hover:bg-amber-50/40 disabled:opacity-50"
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
+                        {v.logo ? <img src={v.logo} alt="" className="h-9 w-9 object-cover" /> : <Store className="h-4 w-4 text-slate-400" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-slate-800">{v.name}</div>
+                        <div className="truncate text-[11px] text-slate-500">{v.category}</div>
+                      </div>
+                      <Plus className="h-4 w-4 text-amber-600" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Current featured list */}
+          <div className="mt-3">
+            {isLoading ? (
+              <div className="flex justify-center py-6"><Spinner className="h-6 w-6" /></div>
+            ) : featured.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 py-6 text-center text-xs text-slate-400">
+                No featured vendors yet. Add one to highlight it on the homepage.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {featured.map((v, i) => (
+                  <div key={v._id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-2.5">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] font-bold text-white">
+                      {i + 1}
+                    </span>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
+                      {v.logo ? <img src={v.logo} alt="" className="h-9 w-9 object-cover" /> : <Store className="h-4 w-4 text-slate-400" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-slate-800">{v.name}</div>
+                      <div className="truncate text-[11px] text-slate-500">{v.category}</div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        disabled={busy || i === 0}
+                        onClick={() => move(i, -1)}
+                        title="Move up"
+                        className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 disabled:opacity-30"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        disabled={busy || i === featured.length - 1}
+                        onClick={() => move(i, 1)}
+                        title="Move down"
+                        className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 disabled:opacity-30"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                      <button
+                        disabled={busy}
+                        onClick={() => removeFeatured(v)}
+                        title="Remove from featured"
+                        className="rounded-lg p-1.5 text-rose-500 transition hover:bg-rose-50 disabled:opacity-50"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
