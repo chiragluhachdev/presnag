@@ -80,7 +80,7 @@ export default function Vendors() {
               <div key={v._id} className="flex items-center justify-between rounded-xl bg-white p-3 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                    {v.logo ? <img src={v.logo} alt="" className="h-10 w-10 rounded-lg object-cover" /> : <Store className="h-5 w-5 text-slate-400" />}
+                    {v.banner || v.logo ? <img src={v.banner || v.logo} alt="" className="h-10 w-10 rounded-lg object-cover" /> : <Store className="h-5 w-5 text-slate-400" />}
                   </div>
                   <div>
                     <div className="font-semibold text-slate-800">{v.name}</div>
@@ -148,7 +148,7 @@ export default function Vendors() {
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                        {v.logo ? <img src={v.logo} alt="" className="h-10 w-10 rounded-lg object-cover" /> : <Store className="h-5 w-5 text-slate-400" />}
+                        {v.banner || v.logo ? <img src={v.banner || v.logo} alt="" className="h-10 w-10 rounded-lg object-cover" /> : <Store className="h-5 w-5 text-slate-400" />}
                       </div>
                       <div>
                         <div className="font-semibold text-slate-800">{v.name}</div>
@@ -244,7 +244,7 @@ function VendorDetailModal({
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
-            {v.logo ? <img src={v.logo} alt="" className="h-12 w-12 rounded-xl object-cover" /> : <Store className="h-6 w-6 text-slate-400" />}
+            {v.banner || v.logo ? <img src={v.banner || v.logo} alt="" className="h-12 w-12 rounded-xl object-cover" /> : <Store className="h-6 w-6 text-slate-400" />}
           </div>
           <div>
             <div className="font-bold text-slate-900">{v.name}</div>

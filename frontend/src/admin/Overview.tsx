@@ -529,7 +529,7 @@ function FeaturedVendorsCard() {
                       className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-2 text-left transition hover:border-amber-300 hover:bg-amber-50/40 disabled:opacity-50"
                     >
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
-                        {v.logo ? <img src={v.logo} alt="" className="h-9 w-9 object-cover" /> : <Store className="h-4 w-4 text-slate-400" />}
+                        {v.banner || v.logo ? <img src={v.banner || v.logo} alt="" className="h-9 w-9 object-cover" /> : <Store className="h-4 w-4 text-slate-400" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-semibold text-slate-800">{v.name}</div>
@@ -559,7 +559,7 @@ function FeaturedVendorsCard() {
                       {i + 1}
                     </span>
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
-                      {v.logo ? <img src={v.logo} alt="" className="h-9 w-9 object-cover" /> : <Store className="h-4 w-4 text-slate-400" />}
+                      {v.banner || v.logo ? <img src={v.banner || v.logo} alt="" className="h-9 w-9 object-cover" /> : <Store className="h-4 w-4 text-slate-400" />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold text-slate-800">{v.name}</div>
