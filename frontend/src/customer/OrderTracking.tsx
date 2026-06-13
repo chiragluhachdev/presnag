@@ -22,6 +22,21 @@
     const { orderNumber } = useParams<{ orderNumber: string }>();
     const [order, setOrder] = useState<Order | null>(null);
     const [copied, setCopied] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
+
+    async function cancelOrder() {
+      if (!order || !window.confirm("Cancel this order? This can't be undone.")) return;
+      setCancelling(true);
+      try {
+        const updated = await api<Order>(`/api/public/orders/${order.orderNumber}/cancel`, { method: "POST" });
+        setOrder(updated);
+        toast.success("Order cancelled");
+      } catch (e: any) {
+        toast.error(e.message || "Couldn't cancel the order");
+      } finally {
+        setCancelling(false);
+      }
+    }
 
     const { data, isLoading } = useQuery({
       queryKey: ["track", orderNumber],
@@ -210,6 +225,18 @@
                 })}
               </div>
             </Card>
+          )}
+
+          {/* Customer-initiated cancellation — only before the kitchen starts. */}
+          {!cancelled && (order.status === "received" || order.status === "accepted") && (
+            <button
+              onClick={cancelOrder}
+              disabled={cancelling}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white py-2.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+            >
+              {cancelling ? <Spinner className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+              Cancel Order
+            </button>
           )}
 
           {/* Compact Order Items Card */}

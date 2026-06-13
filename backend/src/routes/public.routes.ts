@@ -7,7 +7,7 @@ import { Coupon } from "../models/Coupon";
 import { getSettings } from "../models/Setting";
 import { asyncH, HttpError } from "../middleware/error";
 import { genOrderNumber, isStoreOpen } from "../utils/helpers";
-import { emitNewOrder } from "../realtime/io";
+import { emitNewOrder, emitOrderStatus } from "../realtime/io";
 
 const router = Router();
 
@@ -210,6 +210,26 @@ router.get(
       "name slug phone address logo"
     );
     if (!order) throw new HttpError(404, "Order not found");
+    res.json(order);
+  })
+);
+
+// Customer cancels their own order — only before the vendor starts preparing it.
+router.post(
+  "/orders/:orderNumber/cancel",
+  asyncH(async (req, res) => {
+    const order = await Order.findOne({ orderNumber: req.params.orderNumber });
+    if (!order) throw new HttpError(404, "Order not found");
+    if (order.status === "cancelled") return res.json(order);
+    if (order.status !== "received" && order.status !== "accepted") {
+      throw new HttpError(400, "This order can no longer be cancelled — it's already being prepared.");
+    }
+    order.status = "cancelled";
+    order.cancelledBy = "customer";
+    order.cancelReason = "Cancelled by the customer.";
+    await order.save();
+    // Notify the vendor dashboard + this order's tracking screen.
+    emitOrderStatus(String(order.vendorId), order.orderNumber, order);
     res.json(order);
   })
 );
