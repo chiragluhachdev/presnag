@@ -18,6 +18,7 @@ router.get(
     const settings = await getSettings();
     res.json({
       maintenanceMode: settings.maintenanceMode,
+      paymentsDisabled: settings.paymentsDisabled,
       paymentProvider: settings.paymentProvider,
       demoBanner: settings.demoBanner,
     });

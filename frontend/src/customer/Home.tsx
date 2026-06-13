@@ -3,7 +3,7 @@ import { useNavigate, Link, NavigateFunction } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Search, MapPin, Loader2, CupSoda, Sandwich, GlassWater, Croissant, UtensilsCrossed, Cookie,
-  Store, ClipboardList, PackageCheck, Receipt, Info,
+  Store, ClipboardList, PackageCheck, Receipt,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Vendor } from "@/lib/types";
@@ -181,14 +181,6 @@ function TrackOrderModal({ onClose, onTrack }: { onClose: () => void; onTrack: (
 /* ----------------------------------------------------------------------------
  * MOBILE LAYOUT — kept exactly as the approved mobile design.
  * -------------------------------------------------------------------------- */
-function DemoNotice({ className = "" }: { className?: string }) {
-  return (
-    <div className={`flex items-center gap-1.5 rounded-lg border border-brand-100 bg-brand-50/50 px-2.5 py-1.5 ${className}`}>
-      <Info className="h-3.5 w-3.5 shrink-0 text-brand-600" />
-    </div>
-  );
-}
-
 function MobileHome({
   navigate, q, setQ, loc, locStatus, useMyLocation, submitSearch, trackOrder, vendors, isLoading, featured, nearby,
 }: HomeView) {
@@ -316,8 +308,6 @@ function MobileHome({
                 ))}
               </Section>
             )}
-
-            <DemoNotice className="mb-3" />
 
             <DemoBanner placement="home" className="mb-3" />
 
@@ -553,8 +543,6 @@ function DesktopHome({
                 ))}
               </DesktopSection>
             )}
-
-            <DemoNotice className="mb-4 w-fit" />
 
             <DemoBanner placement="home" className="mb-4 w-fit" />
 

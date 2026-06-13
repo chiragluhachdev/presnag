@@ -21,9 +21,12 @@ export function DemoBanner({ placement, className = "" }: { placement: "home" | 
   if (placement === "checkout" && !b.showOnCheckout) return null;
 
   return (
-    <div className={`flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 ${className}`}>
-      <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-      <p className="text-xs leading-snug text-amber-800">{b.message}</p>
+    <div
+      className={`flex items-center gap-4 rounded-xl border border-orange-230/60 bg-gradient-to-r from-orange-50 via-amber-50/70 to-orange-50/40 px-2 py-1 shadow-[0_1px_3px_rgba(234,88,12,0.08)] ring-1 ring-inset ring-white/40 ${className}`}
+      role="status"
+    >
+      <Info className="h-5 w-5 shrink-0 text-orange-500" />
+      <p className="text-[11px] leading-snug text-orange-900/90">{b.message}</p>
     </div>
   );
 }

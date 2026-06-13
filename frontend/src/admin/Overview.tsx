@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench, Wallet, Loader2, Banknote, CreditCard, Megaphone } from "lucide-react";
+import { Store, CheckCircle2, Clock, ShoppingBag, IndianRupee, TrendingUp, CalendarDays, Wrench, Wallet, Loader2, Banknote, CreditCard, Megaphone, Ban } from "lucide-react";
 import { api } from "@/lib/api";
 import { Spinner, Button, Input, Label, Textarea } from "@/components/ui";
 import { Modal } from "@/components/ui/modal";
@@ -43,6 +43,8 @@ export default function Overview() {
       <MaintenanceToggle />
 
       <PaymentGatewayCard />
+
+      <PaymentsToggle />
 
       <DemoBannerCard />
 
@@ -410,6 +412,87 @@ function PaymentGatewayCard() {
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PaymentsToggle() {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["admin-settings"],
+    queryFn: () => api<{ paymentsDisabled: boolean }>("/api/admin/settings", { auth: true }),
+  });
+  const on = !!data?.paymentsDisabled;
+
+  const mutation = useMutation({
+    mutationFn: (paymentsDisabled: boolean) =>
+      api<{ paymentsDisabled: boolean }>("/api/admin/settings", {
+        method: "PUT",
+        auth: true,
+        body: { paymentsDisabled },
+      }),
+    onSuccess: (res) => {
+      qc.setQueryData(["admin-settings"], res);
+      qc.invalidateQueries({ queryKey: ["public-settings"] });
+      toast.success(res.paymentsDisabled ? "Payments are now DISABLED — customers can't pay." : "Payments are now ENABLED — checkout is live.");
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to update"),
+  });
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-4 rounded-2xl border p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between",
+        on ? "border-rose-300 bg-rose-50" : "border-slate-200 bg-white"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+            on ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-500"
+          )}
+        >
+          <Ban className="h-5 w-5" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-900">Disable Payments</h3>
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                on ? "bg-rose-500 text-white" : "bg-slate-200 text-slate-600"
+              )}
+            >
+              {on ? "On" : "Off"}
+            </span>
+          </div>
+          <p className="mt-0.5 max-w-xl text-xs text-slate-500">
+            When ON, customer checkout is paused — the pay button is disabled and no payments are
+            processed. The rest of the storefront stays browsable.
+          </p>
+        </div>
+      </div>
+
+      {/* Toggle switch */}
+      <button
+        type="button"
+        disabled={mutation.isPending || !data}
+        onClick={() => mutation.mutate(!on)}
+        className={cn(
+          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition disabled:opacity-50",
+          on ? "bg-rose-500" : "bg-slate-300"
+        )}
+        aria-pressed={on}
+        title="Toggle payments"
+      >
+        <span
+          className={cn(
+            "inline-block h-5 w-5 transform rounded-full bg-white shadow transition",
+            on ? "translate-x-6" : "translate-x-1"
+          )}
+        />
+      </button>
     </div>
   );
 }

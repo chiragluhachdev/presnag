@@ -24,6 +24,7 @@ const PAID_FILTER = { $or: [{ paymentStatus: "paid" }, { paymentMethod: "COD" }]
 function settingsPayload(s: any) {
   return {
     maintenanceMode: s.maintenanceMode,
+    paymentsDisabled: s.paymentsDisabled,
     paymentProvider: s.paymentProvider,
     demoBanner: s.demoBanner,
   };
@@ -42,6 +43,9 @@ router.put(
     const settings = await getSettings();
     if (typeof req.body.maintenanceMode === "boolean") {
       settings.maintenanceMode = req.body.maintenanceMode;
+    }
+    if (typeof req.body.paymentsDisabled === "boolean") {
+      settings.paymentsDisabled = req.body.paymentsDisabled;
     }
     if (req.body.paymentProvider === "CASHFREE" || req.body.paymentProvider === "RAZORPAY") {
       settings.paymentProvider = req.body.paymentProvider;

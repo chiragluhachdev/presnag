@@ -37,6 +37,9 @@ router.post(
     if (!vendor) throw new HttpError(404, "Vendor not found");
 
     const settings = await getSettings();
+    if (settings.paymentsDisabled) {
+      throw new HttpError(503, "Payments are temporarily disabled. Please try again later.");
+    }
     const provider = settings.paymentProvider === "RAZORPAY" ? "RAZORPAY" : "CASHFREE";
 
     // Both gateways collect into the PreSnag platform account (MANAGED). Cashfree
@@ -121,6 +124,10 @@ router.post(
     if (!order) throw new HttpError(404, "Order not found");
     const vendor = await Vendor.findById(order.vendorId);
     if (!vendor) throw new HttpError(404, "Vendor not found");
+
+    if ((await getSettings()).paymentsDisabled) {
+      throw new HttpError(503, "Payments are temporarily disabled. Please try again later.");
+    }
 
     const direct = vendor.settlementMode === "DIRECT" && vendor.kycStatus === "active";
 

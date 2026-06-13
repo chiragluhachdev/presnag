@@ -6,6 +6,9 @@ const settingSchema = new Schema(
     // A fixed key so there is only ever one settings document.
     key: { type: String, default: "platform", unique: true },
     maintenanceMode: { type: Boolean, default: false },
+    // When ON, customer checkout is paused — no payment orders are created and
+    // the pay button is disabled. Vendors/admin are unaffected.
+    paymentsDisabled: { type: Boolean, default: false },
     // Which payment gateway is active for customer checkout.
     paymentProvider: { type: String, enum: ["CASHFREE", "RAZORPAY"], default: "CASHFREE" },
     // Admin-controlled demo/notice banner.

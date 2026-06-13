@@ -23,7 +23,13 @@ export default function Checkout() {
     enabled: !!cart.vendorSlug,
   });
 
+  const { data: settings } = useQuery({
+    queryKey: ["public-settings"],
+    queryFn: () => api<{ paymentsDisabled?: boolean }>("/api/public/settings"),
+  });
+
   const isStoreClosed = vendorData ? !vendorData.vendor.isOpen : false;
+  const paymentsDisabled = !!settings?.paymentsDisabled;
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -76,6 +82,10 @@ export default function Checkout() {
   }
 
   async function placeOrder() {
+    if (paymentsDisabled) {
+      toast.error("Payments are temporarily disabled. Please try again later.");
+      return;
+    }
     if (!name.trim() || !phone.trim()) {
       toast.error("Please enter your name and phone number");
       return;
@@ -401,10 +411,14 @@ export default function Checkout() {
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center text-sm font-medium text-red-800">
             🚫 Store is currently closed
           </div>
+        ) : paymentsDisabled ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center text-sm font-medium text-amber-800">
+            ⏸️ Payments are temporarily disabled. Please try again later.
+          </div>
         ) : (
-          <Button 
-            className="w-full h-14 text-base font-semibold shadow-md bg-brand-500 hover:bg-brand-600 text-white rounded-xl flex items-center justify-center gap-2" 
-            onClick={placeOrder} 
+          <Button
+            className="w-full h-14 text-base font-semibold shadow-md bg-brand-500 hover:bg-brand-600 text-white rounded-xl flex items-center justify-center gap-2"
+            onClick={placeOrder}
             disabled={placing || loadingVendor}
           >
             {placing ? (
