@@ -185,9 +185,6 @@ function DemoNotice({ className = "" }: { className?: string }) {
   return (
     <div className={`flex items-center gap-1.5 rounded-lg border border-brand-100 bg-brand-50/50 px-2.5 py-1.5 ${className}`}>
       <Info className="h-3.5 w-3.5 shrink-0 text-brand-600" />
-      <p className="text-[11px] leading-snug text-brand-800">
-        <span className="font-semibold">Demo mode:</span> No real orders will be fulfilled, but <span className="font-semibold text-red-600">real payments are active</span>.
-      </p>
     </div>
   );
 }
